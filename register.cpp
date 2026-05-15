@@ -1,6 +1,35 @@
 #include <iostream>
 using namespace std;
 
+// Custom Vector class for dynamic array
+template<typename T>
+class MyVector {
+  private: 
+    T* data;
+    size_t capacity;
+    size_t size;
+    
+    // ... implement push_back, operator[], etc
+
+};
+
+// Custom Stack class
+template<typename T>
+class MyStack {
+  private:
+    T* data;
+    int top;
+    int capacity;
+
+    // ... implement push, pop, isEmpty, etc
+
+};
+
+template<typename T>
+class MyQueue {
+  // .... implement enqueue, dequeue, isEmpty, etc
+};
+
 class BaseRegister{
     private:
       signed char value; // 1 Byte， -128 to 127
