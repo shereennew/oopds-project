@@ -6,10 +6,29 @@ template<typename T>
 class MyVector {
   private: 
     T* data;
-    size_t capacity;
-    size_t size;
+    int capacity;
+    int size;
+  
+  public:
+    // Constructor
+    MyVector() {
+      size = 0;
+      capacity = 4; // for testing
+      data = new T[capacity];
+    }
     
-    // ... implement push_back, operator[], etc
+    // Destructor
+    ~MyVector() {
+      delete[] data;
+    }
+
+    void push_back(const T& value){
+      if (size == capacity){
+        
+      }
+      data[size] = value;
+      size++;
+    }
 
 };
 
