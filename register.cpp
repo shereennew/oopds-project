@@ -6,30 +6,95 @@ template<typename T>
 class MyVector {
   private: 
     T* data;
-    int capacity;
-    int size;
+    int cap; // capacity
+    int sz; // size
+
+    // creates a larger arr if overflowed
+    void grow(){
+      int newCapacity = cap *2;
+      T* newData = new T[newCapacity];
+
+      // copy from data (old) to newData (new)
+      for (int i = 0; i< sz; i++){
+        newData[i] = data[i];
+      }
+      
+      delete[] data; //delete old data
+      data = newData; //point to new array
+      cap = newCapacity; //update capacity
+    }
   
   public:
-    // Constructor
+    // Constructor for a brand new empty vector
     MyVector() {
-      size = 0;
-      capacity = 4; // for testing
-      data = new T[capacity];
+      sz = 0; // no elements yet
+      cap = 4; // allocates memory for 4 elemeents
+      data = new T[cap]; //points to the allocated memory
+    }
+
+    // copy constructor for creating a vector as a copy for existing vector
+    MyVector(const MyVector& other){
+      sz = other.sz;
+      cap = other.cap;
+      data = new T[cap];
+      for (int i = 0; i < sz; i++){
+        data[i] = other.data[i];
+      }
+    }
+
+    // assignment operator to replace array
+    MyVector& operator=(const MyVector& other){
+      if (this == &other) return *this;
+      delete[] data;
+      sz = other.sz;
+      cap = other.cap;
+      data = new T[cap];
+      for (int i = 0; i < sz; i++){
+        data[i] = other.data[i];
+      }
+      return *this;
     }
     
-    // Destructor
+    // Destructor if Myvector out of scope
     ~MyVector() {
       delete[] data;
     }
 
-    void push_back(const T& value){
-      if (size == capacity){
-        
+    //adds new element to the end of the vector
+    void pushback(const T& value){
+      if (sz == cap){
+        grow(); //called when full to transfer data from old arr to new arr
       }
-      data[size] = value;
-      size++;
+      data[sz] = value; // places value in user-defined place
+      sz++;
     }
 
+    // removes last element from vector
+    void popback(){
+      if (sz > 0){
+        sz--;
+      }
+    }
+
+    // allows using square brackets
+    const T& operator[](int index){
+      return data[index];
+    }
+
+    // get size
+    int size() const {
+      return sz;
+    }
+
+    // get capacity
+    int capacity() const{
+      return cap;
+    }
+
+    // returns if size = 0
+    bool empty() const {
+      return sz == 0;
+    }
 };
 
 // Custom Stack class
