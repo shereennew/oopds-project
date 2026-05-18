@@ -101,12 +101,43 @@ class MyVector {
 template<typename T>
 class MyStack {
   private:
-    T* data;
-    int top;
-    int capacity;
+    MyVector<T> elements; // uses the MyVector template
 
-    // ... implement push, pop, isEmpty, etc
+  public:
+    MyStack() {}
 
+    //add element to top
+    void push(const T& value){
+      elements.pushback(value);
+    }
+
+    // remove top element
+    void pop() {
+      if (isEmpty()){ // error handling for empty stack
+        cout << "Error: Cannot pop from empty stack" << endl;
+        exit(1);
+      }
+      elements.popback();
+    }
+
+    // return top element without removing
+    T& top() {
+      if (isEmpty()){ // error handling for empty stack
+        cout << "Error: Cannot pop from empty stack" << endl;
+        exit(1);
+      }
+      return elements[elements.size() -1];
+    }
+
+    // check if empty
+    bool isEmpty() {
+      return elements.empty();
+    }
+
+    //get size
+    int size() {
+      return elements.size();
+    }
 };
 
 template<typename T>
