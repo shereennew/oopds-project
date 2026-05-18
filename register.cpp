@@ -144,8 +144,8 @@ template<typename T>
 class MyQueue {
   private:
     T* data;
-    int front;
-    int rear;
+    int frontIndex;
+    int rearIndex;
     int sz;
     int cap;
 
@@ -154,15 +154,36 @@ class MyQueue {
     }
 
     void grow(){
+      int oldCapacity = cap;
+      int newCapacity = cap * 2;
+      T* newData = new T[newCapacity];
 
+      // copy elements in order (from front to rear)
+      for (int i = 0; i < sz; i++){
+        int oldIndex = (frontIndex + i) % oldCapacity;
+        newData[i] = data[oldIndex];
+      }
+
+      // delete old array
+      delete[] data;
+
+      //point to new array
+      data = newData;
+
+      //reset indices
+      frontIndex = 0;
+      rearIndex = sz-1;
+
+      //update capacity
+      cap = newCapacity;
     }
 
   public:
     MyQueue() {
       sz = 0;
       cap = 4;
-      front = 0;
-      rear = -1;
+      frontIndex = 0;
+      rearIndex = sz -1;
       data = new T[cap];
     }
 
@@ -174,33 +195,33 @@ class MyQueue {
       if (sz == cap){ // calls grow to create a bigger arr if capacity is full
         grow();
       }
-      rear.next(); // move rear forward 
-      data[rear] = value; // store value 
+      rearIndex = next(rearIndex); // move rear forward 
+      data[rearIndex] = value; // store value 
       sz++;
     }
 
     void dequeue(){
       if (isEmpty()){
-        cout << "Error: Cannot dequeue from empty stack" << endl;
+        cout << "Error: Cannot dequeue from empty queue" << endl;
         exit(1);
       }
-      front.next();
+      frontIndex = next(frontIndex);
       sz--;
     }
 
-    T& front() {
+   const T& front() const {
       if (isEmpty()){
-        cout << "Error: Cannot return first data from empty stack" << endl;
+        cout << "Error: Cannot return first data from empty queue" << endl;
         exit(1);
       }
-      return data[front];
+      return data[frontIndex];
     }
 
-    bool isEmpty(){
+    bool isEmpty() const {
       return sz == 0;
     }
 
-    int size() {
+    int size() const {
       return sz;
     }
 };
