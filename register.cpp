@@ -123,7 +123,7 @@ class MyStack {
     // return top element without removing
     T& top() {
       if (isEmpty()){ // error handling for empty stack
-        cout << "Error: Cannot pop from empty stack" << endl;
+        cout << "Error: Cannot return top element from empty stack" << endl;
         exit(1);
       }
       return elements[elements.size() -1];
@@ -142,7 +142,67 @@ class MyStack {
 
 template<typename T>
 class MyQueue {
-  // .... implement enqueue, dequeue, isEmpty, etc
+  private:
+    T* data;
+    int front;
+    int rear;
+    int sz;
+    int cap;
+
+    int next(int index){
+      return (index + 1) % cap;
+    }
+
+    void grow(){
+
+    }
+
+  public:
+    MyQueue() {
+      sz = 0;
+      cap = 4;
+      front = 0;
+      rear = -1;
+      data = new T[cap];
+    }
+
+    ~MyQueue() {
+      delete[] data;
+    }
+
+    void enqueue(const T& value){
+      if (sz == cap){ // calls grow to create a bigger arr if capacity is full
+        grow();
+      }
+      rear.next(); // move rear forward 
+      data[rear] = value; // store value 
+      sz++;
+    }
+
+    void dequeue(){
+      if (isEmpty()){
+        cout << "Error: Cannot dequeue from empty stack" << endl;
+        exit(1);
+      }
+      front.next();
+      sz--;
+    }
+
+    T& front() {
+      if (isEmpty()){
+        cout << "Error: Cannot return first data from empty stack" << endl;
+        exit(1);
+      }
+      return data[front];
+    }
+
+    bool isEmpty(){
+      return sz == 0;
+    }
+
+    int size() {
+      return sz;
+    }
 };
 
 class BaseRegister{
