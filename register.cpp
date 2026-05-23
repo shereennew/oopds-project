@@ -226,6 +226,45 @@ class MyQueue {
     }
 };
 
+class Memory {
+  private:
+    signed char memory[64]; //64 bytes
+
+  public:
+    Memory() {
+      // assigned every element in memory to 0
+      for (int i = 0; i < 64; i++){
+        memory[i] = 0;
+      }
+    }
+
+    // to get address
+    signed char load(int address){
+      if (isValidAddress(address)){
+        return memory[address];
+      }else{
+        cout << "Error: Address not found" << endl;
+        return 0;
+      }
+    }
+
+    // to store value at address
+    void store(int address, signed char value){
+      if (isValidAddress(address)){
+        memory[address] = value;
+      }else{
+        cout << "Error: Invalid memory address " << address << endl;
+      }
+    }
+
+    bool isValidAddress(int address){
+      if (address >= 0 && address <=63){
+        return true;
+      }
+      return false;
+    }
+  };
+
 class BaseRegister{
     private:
       signed char value; // 1 Byte， -128 to 127
@@ -296,13 +335,13 @@ class FlagRegister{
       }
 };
 
-
-
 class CPU
 {
   private:
     BaseRegister R[8]; // R0-R7, R=register
     FlagRegister flags; // CPU flags
+    signed char SI = 0; // stack index register
+    Memory memory; // memory object
 
   public:
     signed char getRegister(int i) // get value from  selected register
@@ -320,6 +359,18 @@ class CPU
     FlagRegister& getFlags() 
     {
         return flags;
+    }
+
+    signed char getSI() {
+      return SI;
+    }
+
+    void setSI(signed char value){
+      SI = value;
+    }
+
+    Memory& getMemory() {
+      return memory;
     }
 };
 
@@ -439,9 +490,12 @@ int main()  // checking purpose
 
     add.execute(cpu);
 
-    cout << "R0 = "
-         << (int)cpu.getRegister(0)
-         << endl;
+    cout << "R0 = " << (int)cpu.getRegister(0) << endl;
+
+    // testing for memory class
+    Memory mem;
+    mem.store(10, 44);
+    cout << (int)mem.load(10);
 
     return 0;
 }
