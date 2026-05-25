@@ -607,17 +607,26 @@ public:
         cout << "ZF " << cpu.getFlags().getZF() << endl;
         cout << "CF " << cpu.getFlags().getCF() << endl;
         cout << "PC " << pc << endl;
+      
+        cout << "#Memory#" << endl;
+        for (int i = 0; i < 64; i++) {
+            if (i % 8 == 0) cout << "#";
+            cout << (int)cpu.getMemory().load(i) << "#";
+            if ((i + 1) % 8 == 0) cout << endl;
+        }
+        // ---------------------------------------------
+        
         cout << "#End#" << endl;
     }
 };
 
-int main()  // checking purpose
-{
+int main() {
     Runner vm;
 
     cout << "--- Virtual Machine System Booting ---" << endl;
     
     vm.loadFile("test.asm"); 
+    vm.run(); 
 
     return 0;
 }
