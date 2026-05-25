@@ -1,4 +1,8 @@
 #include <iostream>
+#include <fstream>
+#include <sstream> 
+#include <string> 
+#include <cstdlib>
 using namespace std;
 
 // Custom Vector class for dynamic array
@@ -333,6 +337,11 @@ class FlagRegister{
         ZF = false;
         CF = false;
       }
+
+      bool getOF() const { return OF; }
+      bool getUF() const { return UF; }
+      bool getZF() const { return ZF; }
+      bool getCF() const { return CF; }
 };
 
 class CPU
@@ -479,23 +488,145 @@ class DIV : public Instruction
       }
 };
 
-int main()  // checking purpose
-{
+class INPUT : public Instruction {
+private:
+    int dest;
+public:
+    INPUT(int d) { dest = d; }
+    void execute(CPU& cpu) override {
+        int inputVal;
+        cout << "INPUT - Enter an integer for R" << dest << " (-128 to 127): ";
+        cin >> inputVal;
+        cpu.setRegister(dest, inputVal);
+    }
+};
+
+class DISPLAY : public Instruction {
+private:
+    int src;
+public:
+    DISPLAY(int s) { src = s; }
+    void execute(CPU& cpu) override {
+        cout << "DISPLAY -> R" << src << " = " << (int)cpu.getRegister(src) << endl;
+    }
+};
+
+class RESET : public Instruction {
+public:
+    void execute(CPU& cpu) override {
+        cpu.getFlags().reset();
+        cout << "SYSTEM RESET - Flags have been cleared." << endl;
+    }
+};
+
+class Runner {
+private:
     CPU cpu;
+    int pc;                         // program counter
+    MyVector<Instruction*> program; 
 
-    cpu.setRegister(0,1000);
-    cpu.setRegister(1,5);
+    // parsing instructions
+    // 1. parse register text (exp: convert "R0," or "R5" to the integer 0 or 5).
+    int parseRegister(string regStr) {
+        if (!regStr.empty() && regStr.back() == ',') {
+            regStr.pop_back(); // remove ","
+        }
+        if (regStr.length() >= 2 && regStr[0] == 'R') {
+            return regStr[1] - '0';
+        }
+        return -1;
+    }
 
-    ADD add(0,1);
+    // 2. constructs the corresponding derived instruction object based on the identified opcode
+    void buildInstruction(const string& op, const string& arg1, const string& arg2) {
+        int r1 = parseRegister(arg1);
+        int r2 = parseRegister(arg2);
 
-    add.execute(cpu);
+        if (op == "ADD") program.pushback(new ADD(r1, r2));
+        else if (op == "SUB") program.pushback(new SUB(r1, r2));
+        else if (op == "MUL") program.pushback(new MUL(r1, r2));
+        else if (op == "DIV") program.pushback(new DIV(r1, r2));
+        else if (op == "INPUT") program.pushback(new INPUT(r1));
+        else if (op == "DISPLAY") program.pushback(new DISPLAY(r1));
+        else if (op == "RESET") program.pushback(new RESET());
+    }
 
-    cout << "R0 = " << (int)cpu.getRegister(0) << endl;
+public:
+    Runner() { pc = 0; }
 
-    // testing for memory class
-    Memory mem;
-    mem.store(10, 44);
-    cout << (int)mem.load(10);
+    ~Runner() { // destructor (releases memory dynamically allocated to instruction objects)
+        for (int i = 0; i < program.size(); i++) {
+            delete program[i];
+        }
+    }
+
+    // file reading(.asm)
+    void loadFile(const string& filename) {
+        ifstream file(filename);
+        if (!file.is_open()) {
+            cout << "Error: Could not open file " << filename << endl;
+            return;
+        }
+        string line;
+        while (getline(file, line)) {
+            size_t commentPos = line.find(';'); // filter comments
+            if (commentPos != string::npos) line = line.substr(0, commentPos);
+
+            stringstream ss(line);
+            string op, arg1, arg2;
+            if (ss >> op) {
+                ss >> arg1 >> arg2;
+                buildInstruction(op, arg1, arg2);
+            }
+        }
+        file.close();
+    }
+
+    // pc updates
+    // initialised to 0 when loading a new program and is updated after the execution of any statement
+    void run() {
+        pc = 0;
+        while (pc < program.size()) {
+            Instruction* currentInst = program[pc];
+            pc++; 
+            currentInst->execute(cpu); // instruction execution flow
+        }
+        printOutput();
+    }
+
+    // output formatting
+    void printOutput() {
+        cout << "\n#Begin#" << endl;
+        cout << "#Registers#" << endl;
+        for (int i = 0; i < 8; i++) {
+            cout << "R" << i << " " << (int)cpu.getRegister(i) << endl;
+        }
+        cout << "#Flags#" << endl;
+        cout << "OF " << cpu.getFlags().getOF() << endl;
+        cout << "UF " << cpu.getFlags().getUF() << endl;
+        cout << "ZF " << cpu.getFlags().getZF() << endl;
+        cout << "CF " << cpu.getFlags().getCF() << endl;
+        cout << "PC " << pc << endl;
+      
+        cout << "#Memory#" << endl;
+        for (int i = 0; i < 64; i++) {
+            if (i % 8 == 0) cout << "#";
+            cout << (int)cpu.getMemory().load(i) << "#";
+            if ((i + 1) % 8 == 0) cout << endl;
+        }
+        // ---------------------------------------------
+        
+        cout << "#End#" << endl;
+    }
+};
+
+int main() {
+    Runner vm;
+
+    cout << "--- Virtual Machine System Booting ---" << endl;
+    
+    vm.loadFile("test.asm"); 
+    vm.run(); 
 
     return 0;
 }
