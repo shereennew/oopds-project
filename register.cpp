@@ -116,12 +116,14 @@ class MyStack {
     }
 
     // remove top element
-    void pop() {
+    T pop() {
       if (isEmpty()){ // error handling for empty stack
         cout << "Error: Cannot pop from empty stack" << endl;
         exit(1);
       }
-      elements.popback();
+      T value = elements[elements.size() -1 ]; // get top value
+      elements.popback(); // remove it
+      return value; // return the value
     }
 
     // return top element without removing
@@ -351,6 +353,7 @@ class CPU
     FlagRegister flags; // CPU flags
     signed char SI = 0; // stack index register
     Memory memory; // memory object
+    MyStack<signed char> stack; // for push and pop classes
 
   public:
     signed char getRegister(int i) // get value from  selected register
@@ -375,11 +378,23 @@ class CPU
     }
 
     void setSI(signed char value){
+      if (value > 127 ){
+        cout << "Error: Stack overflow, SI exceeds 127" << endl;
+        return;
+      }
+      if (value < -128) {
+        cout << "Error: Stack overflow, SI below -128" << endl;
+        return;
+      }
       SI = value;
     }
 
     Memory& getMemory() {
       return memory;
+    }
+
+    MyStack<signed char>& getStack() {
+      return stack;
     }
 };
 
@@ -433,7 +448,6 @@ class SUB : public Instruction
       }
 };
 
-
 class MUL : public Instruction
 {
     private:
@@ -453,7 +467,6 @@ class MUL : public Instruction
         cpu.setRegister(dest,result);
       }
 };
-
 
 class DIV : public Instruction
 {
@@ -516,6 +529,114 @@ public:
     void execute(CPU& cpu) override {
         cpu.getFlags().reset();
         cout << "SYSTEM RESET - Flags have been cleared." << endl;
+    }
+};
+
+// for LOAD <DestinationRegister>, <address>
+class LOAD_Direct : public Instruction {
+  private:
+    int destReg; // destination register(R1)
+    int address; // memory address (20)
+  public:
+    // store destReg and memory address
+    LOAD_Direct(int dest, int addr) : destReg(dest), address(addr) {} 
+
+    void execute(CPU& cpu) override {
+      // get value from memory at 'address'
+      signed char value = cpu.getMemory().load(address);
+      // store that value into register 'destReg'
+      cpu.setRegister(destReg, value);
+    }
+};
+
+// for LOAD <DestinationRegister>, <[SourceRegister]>
+class LOAD_Indirect : public Instruction {
+  private:
+    int destReg; // destination register(R1)
+    int srcReg; // source register that holds address (R2)
+  public:
+    // store destReg and sourceReg
+    LOAD_Indirect(int dest, int src) : destReg(dest), srcReg(src){}
+
+    void execute(CPU& cpu) override {
+      // get address from source register
+      int address = cpu.getRegister(srcReg);
+      // get value from memory at that address
+      signed char value = cpu.getMemory().load(address);
+      // store value into destination register
+      cpu.setRegister(destReg, value);
+    }
+};
+
+// for STORE <Destination Register>, <memoryAddress>
+class STORE_Direct : public Instruction {
+  private:
+    int srcReg; // source register(R1)
+    int address; // memory address (20)
+  public:
+    // stores source register and memory address
+    STORE_Direct(int src, int addr) : srcReg(src), address(addr) {}
+
+    void execute (CPU& cpu) override {
+      // get value from register
+      signed char value = cpu.getRegister(srcReg);
+      // store value to memory at address
+      cpu.getMemory().store(address, value);
+    }
+};
+
+// for STORE <[DestinationRegister]> , <SourceRegister>
+class STORE_Indirect : public Instruction{
+  private:
+    int addressReg; // register holding address (r2)
+    int srcReg; // source register (r1)
+  public:
+    // stores address register and source register
+    STORE_Indirect(int addrReg, int src) : addressReg(addrReg), srcReg(src) {}
+
+    void execute(CPU& cpu) override {
+      // get address from addressReg
+      int address = cpu.getRegister(addressReg);
+      // get value from srcReg
+      signed char value = cpu.getRegister(srcReg);
+      // store value to memory at that address
+      cpu.getMemory().store(address, value);
+    }
+};
+
+// for PUSH <REGISTER>
+class PUSH : public Instruction {
+  private:
+    int srcReg;
+  public:
+    //stores source register
+    PUSH(int src) : srcReg(src) {}
+
+    void execute (CPU& cpu) override {
+      // get value from srcReg
+      signed char value = cpu.getRegister(srcReg);
+      // push onto stack
+      cpu.getStack().push(value);
+      // increase SI
+      cpu.setSI(cpu.getSI() + 1);
+    }
+};
+
+// for POP <REGISTER>
+class POP : public Instruction {
+  private:
+    int destReg;
+  public:
+    // stores destination register
+    POP (int dest) : destReg(dest) {}
+
+    void execute(CPU& cpu) override {
+      // pop from stack
+      signed char value = cpu.getStack().pop();
+      // store into destReg
+      cpu.setRegister(destReg, value);
+      // decrease SI
+      cpu.setSI(cpu.getSI() - 1);
     }
 };
 
