@@ -501,6 +501,191 @@ class DIV : public Instruction
       }
 };
 
+// MOV_DIRECT 
+class MOV_Direct : public Instruction {
+  private:
+    int dest; // destination register
+    int src; // source register
+
+  public:
+    MOV_Direct(int d, int s) : dest(d), src(s) {}
+
+    void execute(CPU& cpu) override {
+        int value = cpu.getRegister(src);
+        cpu.setRegister(dest, value);
+    }
+};
+
+// MOV_IMMEDIATE
+class MOV_Immediate : public Instruction {
+  private:
+    int dest; // destination register
+    int value; // immediate value
+
+  public:
+    MOV_Immediate(int d, int v) : dest(d), value(v) {}
+
+    void execute(CPU& cpu) override {
+        cpu.setRegister(dest, value);
+    }
+};
+
+class MOV_FromMemory : public Instruction {
+  private:
+    int dest;
+    int address;
+  public:
+    MOV_FromMemory(int d, int addr) : dest(d), address(addr) {}
+    
+    void execute(CPU& cpu) override {
+        // Load from memory
+        signed char value = cpu.getMemory().load(address);
+        // Store to register
+        cpu.setRegister(dest, value);
+    }
+};
+
+class MOV_ToMemory : public Instruction {
+  private:
+    int address;  // memory address FIRST
+    int src;      // source register SECOND
+  public:
+    MOV_ToMemory(int addr, int s) : address(addr), src(s) {}
+    
+    void execute(CPU& cpu) override {
+        signed char value = cpu.getRegister(src);
+        cpu.getMemory().store(address, value);
+    }
+};
+
+// SHL (Shift Left)
+class SHL : public Instruction {
+  private:
+    int dest;    // register to shift
+    int amount;  // how many positions to shift
+    
+  public:
+    SHL(int d, int a) : dest(d), amount(a) {}
+    
+    void execute(CPU& cpu) {
+        // Get current value
+        signed char value = cpu.getRegister(dest);
+        
+        // Shift left using << operator
+        // Example: value=5 (binary 00000101), amount=2
+        // 5 << 2 = 20 (binary 00010100)
+        int result = value << amount;
+        
+        // Store result (flags update automatically if overflow)
+        cpu.setRegister(dest, result);
+    }
+};
+
+// SHR (Shift Right)
+class SHR : public Instruction {
+  private:
+    int dest;    // register to shift
+    int amount;  // how many positions to shift
+    
+  public:
+    SHR(int d, int a) : dest(d), amount(a) {}
+    
+    void execute(CPU& cpu) {
+        // Get current value
+        signed char value = cpu.getRegister(dest);
+        
+        // Need to treat as unsigned for right shift to avoid sign issues
+        // Example: value=20 (binary 00010100), amount=2
+        // 20 >> 2 = 5 (binary 00000101)
+        unsigned char uvalue = (unsigned char)value;
+        
+        // Shift right
+        int result = (signed char)(uvalue >> amount);
+        
+        // Store result
+        cpu.setRegister(dest, result);
+    }
+};
+
+
+//ROL (Rotate Left)
+class ROL : public Instruction {
+  private:
+    int dest;
+    int amount;
+  public:
+    ROL(int d, int a) : dest(d), amount(a) {}
+    
+    void execute(CPU& cpu) override {
+        unsigned char value = (unsigned char)cpu.getRegister(dest);
+        int shift = amount % 8;
+        
+        // Simple rotation
+        unsigned char result = (value << shift) | (value >> (8 - shift));
+        
+        cpu.setRegister(dest, (signed char)result);
+    }
+};
+
+//ROR (Rotate Right)
+class ROR : public Instruction {
+  private:
+    int dest;
+    int amount;
+  public:
+    ROR(int d, int a) : dest(d), amount(a) {}
+    
+    void execute(CPU& cpu) override {
+        unsigned char value = (unsigned char)cpu.getRegister(dest);
+        int shift = amount % 8;
+        
+        // Simple rotation
+        unsigned char result = (value >> shift) | (value << (8 - shift));
+        
+        cpu.setRegister(dest, (signed char)result);
+    }
+};
+
+//INC (Increment)
+class INC : public Instruction {
+  private:
+    int dest;  // which register to increment
+    
+  public:
+    INC(int d) : dest(d) {}  // constructor stores the register number
+    
+    void execute(CPU& cpu) {
+        // Get current value from register
+        int currentValue = cpu.getRegister(dest);
+        
+        // Add 1 to it
+        int result = currentValue + 1;
+        
+        // Store back to same register (this also updates flags)
+        cpu.setRegister(dest, result);
+    }
+};
+
+//DEC (Decrement)
+class DEC : public Instruction {
+  private:
+    int dest;  // which register to decrement
+    
+  public:
+    DEC(int d) : dest(d) {}
+    
+    void execute(CPU& cpu) {
+        // Get current value
+        int currentValue = cpu.getRegister(dest);
+        
+        // Subtract 1
+        int result = currentValue - 1;
+        
+        // Store back (updates flags)
+        cpu.setRegister(dest, result);
+    }
+};
+
 class INPUT : public Instruction {
 private:
     int dest;
@@ -670,6 +855,105 @@ private:
         else if (op == "INPUT") program.pushback(new INPUT(r1));
         else if (op == "DISPLAY") program.pushback(new DISPLAY(r1));
         else if (op == "RESET") program.pushback(new RESET());
+else if (op == "MOV") {
+    // Clean strings (remove trailing commas)
+    string a1 = arg1;
+    string a2 = arg2;
+    if (!a1.empty() && a1.back() == ',') a1.pop_back();
+    if (!a2.empty() && a2.back() == ',') a2.pop_back();
+    
+    // MOV [20], R1
+    if (a1[0] == '[' && a1.back() == ']') {
+        int addr = stoi(a1.substr(1, a1.length() - 2));
+        program.pushback(new MOV_ToMemory(addr, r2));
+    }
+    // MOV R1, [20]
+    else if (a2[0] == '[' && a2.back() == ']') {
+        int addr = stoi(a2.substr(1, a2.length() - 2));
+        program.pushback(new MOV_FromMemory(r1, addr));
+    }
+    // MOV R1, #5
+    else if (a2[0] == '#') {
+        int immValue = stoi(a2.substr(1));
+        program.pushback(new MOV_Immediate(r1, immValue));
+    }
+    // MOV R1, R2
+    else if (a2[0] == 'R') {
+        program.pushback(new MOV_Direct(r1, r2));
+    }
+}
+// SHL, SHR, ROL, ROR - NEED TO GET THE AMOUNT VALUE
+else if (op == "SHL") {
+    // Check if second argument is a number (like #2 or just 2)
+    string amountStr = arg2;
+    if (amountStr[0] == '#') {
+        amountStr = amountStr.substr(1);
+    }
+    int amount = stoi(amountStr);
+    program.pushback(new SHL(r1, amount));  // Pass amount, NOT r2!
+}
+else if (op == "SHR") {
+    string amountStr = arg2;
+    if (amountStr[0] == '#') {
+        amountStr = amountStr.substr(1);
+    }
+    int amount = stoi(amountStr);
+    program.pushback(new SHR(r1, amount));
+}
+else if (op == "ROL") {
+    string amountStr = arg2;
+    if (amountStr[0] == '#') {
+        amountStr = amountStr.substr(1);
+    }
+    int amount = stoi(amountStr);
+    program.pushback(new ROL(r1, amount));
+}
+else if (op == "ROR") {
+    string amountStr = arg2;
+    if (amountStr[0] == '#') {
+        amountStr = amountStr.substr(1);
+    }
+    int amount = stoi(amountStr);
+    program.pushback(new ROR(r1, amount));
+}
+else if (op == "INC") {
+    program.pushback(new INC(r1));
+}
+else if (op == "DEC") {
+    program.pushback(new DEC(r1));
+}
+else if (op == "LOAD") {
+    // LOAD R1, 20 (direct - number without #)
+    if (arg2[0] != '[') {
+        int addr = stoi(arg2);  // Direct number like "20"
+        program.pushback(new LOAD_Direct(r1, addr));
+    }
+    // LOAD R1, [R2] (indirect - register in brackets)
+    else if (arg2[0] == '[' && arg2.back() == ']') {
+        string regStr = arg2.substr(1, arg2.length() - 2);
+        int srcReg = parseRegister(regStr);
+        program.pushback(new LOAD_Indirect(r1, srcReg));
+    }
+}
+else if (op == "STORE") {
+    // STORE R1, 20 (direct)
+    if (arg2[0] != '[') {
+        int addr = stoi(arg2);
+        program.pushback(new STORE_Direct(r1, addr));
+    }
+    // STORE R1, [R2] (indirect)
+    else if (arg2[0] == '[' && arg2.back() == ']') {
+        string regStr = arg2.substr(1, arg2.length() - 2);
+        int destReg = parseRegister(regStr);
+        program.pushback(new STORE_Indirect(destReg, r1));
+    }
+}
+else if (op == "PUSH") {
+    program.pushback(new PUSH(r1));
+}
+else if (op == "POP") {
+    program.pushback(new POP(r1));
+}
     }
 
 public:
