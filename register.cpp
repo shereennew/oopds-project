@@ -340,6 +340,27 @@ class FlagRegister{
         CF = false;
       }
 
+      void resetOF()
+      {
+          OF = false;
+      }
+
+      void resetUF()
+      {
+          UF = false;
+      }
+
+      void resetZF()
+      {
+          ZF = false;
+      }
+
+      void resetCF()
+      {
+          CF = false;
+      }
+
+      
       bool getOF() const { return OF; }
       bool getUF() const { return UF; }
       bool getZF() const { return ZF; }
@@ -402,7 +423,7 @@ class CPU
 class Instruction{ 
     public:
        virtual void execute( CPU& cpu) = 0; //every child class must create execute
-
+       virtual ~Instruction(){}
 };
 
 
@@ -710,10 +731,35 @@ public:
 };
 
 class RESET : public Instruction {
+private:
+    string flagName;
+
 public:
+
+    RESET(string flag) {
+        flagName = flag;
+    }
+
     void execute(CPU& cpu) override {
-        cpu.getFlags().reset();
-        cout << "SYSTEM RESET - Flags have been cleared." << endl;
+
+        if(flagName == "OF")
+        {
+            cpu.getFlags().resetOF();
+        }
+        else if(flagName == "UF")
+        {
+            cpu.getFlags().resetUF();
+        }
+        else if(flagName == "ZF")
+        {
+            cpu.getFlags().resetZF();
+        }
+        else if(flagName == "CF")
+        {
+            cpu.getFlags().resetCF();
+        }
+
+        cout << "RESET " << flagName << endl;
     }
 };
 
@@ -831,6 +877,34 @@ private:
     int pc;                         // program counter
     MyVector<Instruction*> program; 
 
+    void print4Digit(int value)
+{
+    if(value < 0)
+    {
+        cout << "-";
+
+        value = -value;
+
+        if(value < 10)
+            cout << "00" << value;
+        else if(value < 100)
+            cout << "0" << value;
+        else
+            cout << value;
+    }
+    else
+    {
+        if(value < 10)
+            cout << "000" << value;
+        else if(value < 100)
+            cout << "00" << value;
+        else if(value < 1000)
+            cout << "0" << value;
+        else
+            cout << value;
+    }
+}
+
     // parsing instructions
     // 1. parse register text (exp: convert "R0," or "R5" to the integer 0 or 5).
     int parseRegister(string regStr) {
@@ -854,7 +928,7 @@ private:
         else if (op == "DIV") program.pushback(new DIV(r1, r2));
         else if (op == "INPUT") program.pushback(new INPUT(r1));
         else if (op == "DISPLAY") program.pushback(new DISPLAY(r1));
-        else if (op == "RESET") program.pushback(new RESET());
+        else if(op == "RESET"){program.pushback(new RESET(arg1));}
 else if (op == "MOV") {
     // Clean strings (remove trailing commas)
     string a1 = arg1;
@@ -1001,28 +1075,82 @@ public:
 
     // output formatting
     void printOutput() {
-        cout << "\n#Begin#" << endl;
-        cout << "#Registers#" << endl;
-        for (int i = 0; i < 8; i++) {
-            cout << "R" << i << " " << (int)cpu.getRegister(i) << endl;
-        }
-        cout << "#Flags#" << endl;
-        cout << "OF " << cpu.getFlags().getOF() << endl;
-        cout << "UF " << cpu.getFlags().getUF() << endl;
-        cout << "ZF " << cpu.getFlags().getZF() << endl;
-        cout << "CF " << cpu.getFlags().getCF() << endl;
-        cout << "PC " << pc << endl;
-      
-        cout << "#Memory#" << endl;
-        for (int i = 0; i < 64; i++) {
-            if (i % 8 == 0) cout << "#";
-            cout << (int)cpu.getMemory().load(i) << "#";
-            if ((i + 1) % 8 == 0) cout << endl;
-        }
-        // ---------------------------------------------
-        
-        cout << "#End#" << endl;
+
+    cout << "#Begin#" << endl;
+
+    // Registers
+    cout << "#Registers#";
+
+    for(int i = 0; i < 8; i++)
+    {
+        int value = (int)cpu.getRegister(i);
+
+        print4Digit(value);
+
+        cout << "#";
     }
+
+    cout << endl;
+
+    // Flags
+    cout << "#Flags#";
+
+    cout << "OF#" 
+         << cpu.getFlags().getOF()
+         << "#";
+
+    cout << "UF#"
+         << cpu.getFlags().getUF()
+         << "#";
+
+    cout << "CF#"
+         << cpu.getFlags().getCF()
+         << "#";
+
+    cout << "ZF#"
+         << cpu.getFlags().getZF()
+         << "#";
+
+    cout << endl;
+
+
+    // PC
+    cout << "#PC#";
+
+    if(pc < 10)
+        cout << "000" << pc;
+    else if(pc < 100)
+        cout << "00" << pc;
+    else
+        cout << pc;
+
+    cout << "#" << endl;
+
+    // Memory
+    cout << "#Memory#" << endl;
+
+
+    for(int i=0;i<64;i++)
+    {
+
+        if(i % 8 == 0)
+            cout << "#";
+
+
+        int value = (int)cpu.getMemory().load(i);
+
+        print4Digit(value);
+
+        cout<<"#";
+
+
+        if((i+1)%8==0)
+            cout<<endl;
+
+    }
+
+    cout<<"#End#"<<endl;
+  }
 };
 
 int main() {
