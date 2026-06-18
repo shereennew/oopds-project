@@ -710,12 +710,27 @@ class DEC : public Instruction {
 class INPUT : public Instruction {
 private:
     int dest;
+
 public:
-    INPUT(int d) { dest = d; }
-    void execute(CPU& cpu) override {
+    INPUT(int d)
+    {
+        dest = d;
+    }
+
+    void execute(CPU& cpu) override
+    {
         int inputVal;
-        cout << "INPUT - Enter an integer for R" << dest << " (-128 to 127): ";
+
+        cout << "? ";
+
         cin >> inputVal;
+
+        while(inputVal < -128 || inputVal > 127)
+        {
+            cout << "? ";
+            cin >> inputVal;
+        }
+
         cpu.setRegister(dest, inputVal);
     }
 };
@@ -723,10 +738,16 @@ public:
 class DISPLAY : public Instruction {
 private:
     int src;
+
 public:
-    DISPLAY(int s) { src = s; }
-    void execute(CPU& cpu) override {
-        cout << "DISPLAY -> R" << src << " = " << (int)cpu.getRegister(src) << endl;
+    DISPLAY(int s)
+    {
+        src = s;
+    }
+
+    void execute(CPU& cpu) override
+    {
+        cout << (int)cpu.getRegister(src) << endl;
     }
 };
 
@@ -758,8 +779,6 @@ public:
         {
             cpu.getFlags().resetCF();
         }
-
-        cout << "RESET " << flagName << endl;
     }
 };
 
@@ -1028,6 +1047,12 @@ else if (op == "PUSH") {
 else if (op == "POP") {
     program.pushback(new POP(r1));
 }
+
+else
+{
+    cout << "Error: Unknown instruction " << op << endl;
+    exit(1);
+}
     }
 
 public:
@@ -1053,9 +1078,19 @@ public:
 
             stringstream ss(line);
             string op, arg1, arg2;
-            if (ss >> op) {
+            if(ss >> op)
+            {
                 ss >> arg1 >> arg2;
-                buildInstruction(op, arg1, arg2);
+
+                string extra;
+
+                if(ss >> extra)
+                {
+                    cout << "Error: Multiple instructions on one line" << endl;
+                    exit(1);
+                }
+
+                buildInstruction(op,arg1,arg2);
             }
         }
         file.close();
@@ -1117,12 +1152,7 @@ public:
     // PC
     cout << "#PC#";
 
-    if(pc < 10)
-        cout << "000" << pc;
-    else if(pc < 100)
-        cout << "00" << pc;
-    else
-        cout << pc;
+    print4Digit(pc);
 
     cout << "#" << endl;
 
@@ -1155,8 +1185,6 @@ public:
 
 int main() {
     Runner vm;
-
-    cout << "--- Virtual Machine System Booting ---" << endl;
     
     vm.loadFile("test.asm"); 
     vm.run(); 
