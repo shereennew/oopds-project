@@ -748,8 +748,8 @@ class LOAD_Direct : public Instruction {
 // for LOAD <DestinationRegister>, <[SourceRegister]>
 class LOAD_Indirect : public Instruction {
   private:
-    int destReg; // destination register(R1)
-    int srcReg; // source register that holds address (R2)
+    int destReg; // destination register example: [R1]
+    int srcReg; // source register that holds address example: [R2]
   public:
     // store destReg and sourceReg
     LOAD_Indirect(int dest, int src) : destReg(dest), srcReg(src){}
@@ -768,8 +768,8 @@ class LOAD_Indirect : public Instruction {
 // for STORE <Destination Register>, <memoryAddress>
 class STORE_Direct : public Instruction {
   private:
-    int srcReg; // source register(R1)
-    int address; // memory address (20)
+    int srcReg; // source register example: [R1]
+    int address; // memory address example: 20
   public:
     // stores source register and memory address
     STORE_Direct(int src, int addr) : srcReg(src), address(addr) {}
@@ -786,8 +786,8 @@ class STORE_Direct : public Instruction {
 // for STORE <[DestinationRegister]> , <SourceRegister>
 class STORE_Indirect : public Instruction{
   private:
-    int srcReg; // register holding address (r2)
-    int addressReg; // source register (r1)
+    int srcReg; // source register example: [r1]
+    int addressReg; // register holding address example: r2
   public:
     // stores address register and source register
     STORE_Indirect(int src, int addrReg) : srcReg(src), addressReg(addrReg) {}
