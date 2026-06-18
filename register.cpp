@@ -5,7 +5,8 @@
 #include <cstdlib>
 using namespace std;
 
-// Custom Vector class for dynamic array
+// custom vector class 
+// template created by Eryne 
 template<typename T>
 class MyVector {
   private: 
@@ -101,7 +102,8 @@ class MyVector {
     }
 };
 
-// Custom Stack class
+// custom stack class
+// template created by Eryne
 template<typename T>
 class MyStack {
   private:
@@ -146,6 +148,8 @@ class MyStack {
     }
 };
 
+// custom queue class
+// template created by Eryne
 template<typename T>
 class MyQueue {
   private:
@@ -232,6 +236,7 @@ class MyQueue {
     }
 };
 
+// class created by Eryne
 class Memory {
   private:
     signed char memory[64]; //64 bytes
@@ -351,9 +356,9 @@ class CPU
   private:
     BaseRegister R[8]; // R0-R7, R=register
     FlagRegister flags; // CPU flags
-    signed char SI = 0; // stack index register
-    Memory memory; // memory object
-    MyStack<signed char> stack; // for push and pop classes
+    signed char SI = 0; // stack index register, added by Eryne
+    Memory memory; // memory object, added by Eryne
+    MyStack<signed char> stack; // for push and pop classes, added by Eryne
 
   public:
     signed char getRegister(int i) // get value from  selected register
@@ -373,10 +378,12 @@ class CPU
         return flags;
     }
 
+    // function created by Eryne
     signed char getSI() {
       return SI;
     }
 
+    // function created by Eryne
     void setSI(signed char value){
       if (value > 127 ){
         cout << "Error: Stack overflow, SI exceeds 127" << endl;
@@ -389,10 +396,12 @@ class CPU
       SI = value;
     }
 
+    // function created by Eryne
     Memory& getMemory() {
       return memory;
     }
 
+    // function created by Eryne
     MyStack<signed char>& getStack() {
       return stack;
     }
@@ -717,6 +726,7 @@ public:
     }
 };
 
+// class created by Eryne
 // for LOAD <DestinationRegister>, <address>
 class LOAD_Direct : public Instruction {
   private:
@@ -734,6 +744,7 @@ class LOAD_Direct : public Instruction {
     }
 };
 
+// class created by Eryne
 // for LOAD <DestinationRegister>, <[SourceRegister]>
 class LOAD_Indirect : public Instruction {
   private:
@@ -753,6 +764,7 @@ class LOAD_Indirect : public Instruction {
     }
 };
 
+// class created by Eryne
 // for STORE <Destination Register>, <memoryAddress>
 class STORE_Direct : public Instruction {
   private:
@@ -770,14 +782,15 @@ class STORE_Direct : public Instruction {
     }
 };
 
+// class created by Eryne
 // for STORE <[DestinationRegister]> , <SourceRegister>
 class STORE_Indirect : public Instruction{
   private:
-    int addressReg; // register holding address (r2)
-    int srcReg; // source register (r1)
+    int srcReg; // register holding address (r2)
+    int addressReg; // source register (r1)
   public:
     // stores address register and source register
-    STORE_Indirect(int addrReg, int src) : addressReg(addrReg), srcReg(src) {}
+    STORE_Indirect(int src, int addrReg) : srcReg(src), addressReg(addrReg) {}
 
     void execute(CPU& cpu) override {
       // get address from addressReg
@@ -789,6 +802,7 @@ class STORE_Indirect : public Instruction{
     }
 };
 
+// class created by Eryne
 // for PUSH <REGISTER>
 class PUSH : public Instruction {
   private:
@@ -807,6 +821,7 @@ class PUSH : public Instruction {
     }
 };
 
+// class created by Eryne
 // for POP <REGISTER>
 class POP : public Instruction {
   private:
