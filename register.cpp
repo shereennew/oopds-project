@@ -916,33 +916,20 @@ private:
     unsigned char pc;                         // program counter
     MyQueue<Instruction*> program; 
 
-    void print4Digit(int value)
-{
-    if(value < 0)
-    {
-        cout << "-";
-
-        value = -value;
-
-        if(value < 10)
-            cout << "00" << value;
-        else if(value < 100)
-            cout << "0" << value;
-        else
-            cout << value;
+    void print4Digit(ostream& out, int value) {
+        if(value < 0) {
+            out << "-";
+            value = -value;
+            if(value < 10) out << "00" << value;
+            else if(value < 100) out << "0" << value;
+            else out << value;
+        } else {
+            if(value < 10) out << "000" << value;
+            else if(value < 100) out << "00" << value;
+            else if(value < 1000) out << "0" << value;
+            else out << value;
+        }
     }
-    else
-    {
-        if(value < 10)
-            cout << "000" << value;
-        else if(value < 100)
-            cout << "00" << value;
-        else if(value < 1000)
-            cout << "0" << value;
-        else
-            cout << value;
-    }
-}
 
     // parsing instructions
     int parseRegister(string regStr) {
@@ -1105,38 +1092,53 @@ public:
         printOutput();
     }
 
-    // output formatting
-    void printRegistersAndFlags() {
-        cout << "#Registers#";
+    void printRegistersAndFlags(ostream& out) {
+        out << "#Registers#";
         for(int i = 0; i < 8; i++) {
-            print4Digit((int)cpu.getRegister(i));
-            cout << "#";
+            print4Digit(out, (int)cpu.getRegister(i));
+            out << "#";
         }
-        cout << endl << "#Flags#";
-        cout << "OF#" << cpu.getFlags().getOF() << "#"
-             << "UF#" << cpu.getFlags().getUF() << "#"
-             << "CF#" << cpu.getFlags().getCF() << "#"
-             << "ZF#" << cpu.getFlags().getZF() << "#" << endl;
+        out << endl << "#Flags#";
+        out << "OF#" << cpu.getFlags().getOF() << "#"
+            << "UF#" << cpu.getFlags().getUF() << "#"
+            << "CF#" << cpu.getFlags().getCF() << "#"
+            << "ZF#" << cpu.getFlags().getZF() << "#" << endl;
     }
 
-    void printMemoryDump() {
-        cout << "#Memory#" << endl;
+    void printMemoryDump(ostream& out) {
+        out << "#Memory#" << endl;
         for(int i = 0; i < 64; i++) {
-            if(i % 8 == 0) cout << "#";
-            print4Digit((int)cpu.getMemory().load(i));
-            cout << "#";
-            if((i+1) % 8 == 0) cout << endl;
+            if(i % 8 == 0) out << "#";
+            print4Digit(out, (int)cpu.getMemory().load(i));
+            out << "#";
+            if((i+1) % 8 == 0) out << endl;
         }
     }
 
     void printOutput() {
         cout << "#Begin#" << endl;
-        printRegistersAndFlags();
+        printRegistersAndFlags(cout);
         cout << "#PC#";
-        print4Digit(pc);
+        print4Digit(cout, pc);
         cout << "#" << endl;
-        printMemoryDump();
+        printMemoryDump(cout);
         cout << "#End#" << endl;
+
+        // output.txt
+        ofstream outFile("output.txt");
+        if(outFile.is_open()) {
+            outFile << "#Begin#" << endl;
+            printRegistersAndFlags(outFile);
+            outFile << "#PC#";
+            print4Digit(outFile, pc);
+            outFile << "#" << endl;
+            printMemoryDump(outFile);
+            outFile << "#End#" << endl;
+            outFile.close();
+            cout << "\n[System] Execution finished. Results have been saved to 'output.txt'." << endl;
+        } else {
+            cout << "\n[Error] Unable to create 'output.txt' file." << endl;
+        }
     }
 };
 
