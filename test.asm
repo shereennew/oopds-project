@@ -1,4 +1,3 @@
-MOV R0, #42
-MOV [10], R0
-MOV R1, [10]
-DISPLAY R1
+MOV R0, 1
+SHL R0, 7    ; Should be 0
+DISPLAY R0   ; Should show 0

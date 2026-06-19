@@ -501,7 +501,8 @@ class DIV : public Instruction
       }
 };
 
-// MOV_DIRECT 
+// MOV_DIRECT
+// Shereen
 class MOV_Direct : public Instruction {
   private:
     int dest; // destination register
@@ -554,6 +555,21 @@ class MOV_ToMemory : public Instruction {
     
     void execute(CPU& cpu) override {
         signed char value = cpu.getRegister(src);
+        cpu.getMemory().store(address, value);
+    }
+};
+
+// MOV_StoreIndirect - MOV [R1], R3
+class MOV_StoreIndirect : public Instruction {
+  private:
+    int addrReg;   // register containing address
+    int srcReg;    // register containing value to store
+  public:
+    MOV_StoreIndirect(int addr, int src) : addrReg(addr), srcReg(src) {}
+    
+    void execute(CPU& cpu) override {
+        int address = cpu.getRegister(addrReg);
+        signed char value = cpu.getRegister(srcReg);
         cpu.getMemory().store(address, value);
     }
 };
@@ -856,32 +872,43 @@ private:
         else if (op == "DISPLAY") program.pushback(new DISPLAY(r1));
         else if (op == "RESET") program.pushback(new RESET());
 else if (op == "MOV") {
-    // Clean strings (remove trailing commas)
-    string a1 = arg1;
-    string a2 = arg2;
+    string a1 = arg1, a2 = arg2;
     if (!a1.empty() && a1.back() == ',') a1.pop_back();
     if (!a2.empty() && a2.back() == ',') a2.pop_back();
     
-    // MOV [20], R1
-    if (a1[0] == '[' && a1.back() == ']') {
+    // 1. MOV [R1], R2 (store to memory address in register)
+    if (a1[0] == '[' && a1.back() == ']' && a1.find('R') != string::npos) {
+        string regStr = a1.substr(1, a1.length() - 2);
+        int addrReg = parseRegister(regStr);
+        program.pushback(new MOV_StoreIndirect(addrReg, r2));
+    }
+    // 2. MOV R1, [R2] (load from memory address in register)
+    else if (a2[0] == '[' && a2.back() == ']' && a2.find('R') != string::npos) {
+        string regStr = a2.substr(1, a2.length() - 2);
+        int srcReg = parseRegister(regStr);
+        program.pushback(new LOAD_Indirect(r1, srcReg));
+    }
+    // 3. MOV [20], R1 (store to direct memory address)
+    else if (a1[0] == '[' && a1.back() == ']') {
         int addr = stoi(a1.substr(1, a1.length() - 2));
         program.pushback(new MOV_ToMemory(addr, r2));
     }
-    // MOV R1, [20]
+    // 4. MOV R1, [20] (load from direct memory address)
     else if (a2[0] == '[' && a2.back() == ']') {
         int addr = stoi(a2.substr(1, a2.length() - 2));
         program.pushback(new MOV_FromMemory(r1, addr));
     }
-    // MOV R1, #5
-    else if (a2[0] == '#') {
-        int immValue = stoi(a2.substr(1));
+    // 5. MOV R1, 10 (immediate value - NO #)
+    else if (a2.find('R') == string::npos) {
+        int immValue = stoi(a2);
         program.pushback(new MOV_Immediate(r1, immValue));
     }
-    // MOV R1, R2
+    // 6. MOV R1, R2 (register to register)
     else if (a2[0] == 'R') {
         program.pushback(new MOV_Direct(r1, r2));
     }
 }
+
 // SHL, SHR, ROL, ROR - NEED TO GET THE AMOUNT VALUE
 else if (op == "SHL") {
     // Check if second argument is a number (like #2 or just 2)
