@@ -399,11 +399,19 @@ class CPU
    
     signed char getRegister(int i) // get value from  selected register
     {
-       return R[i]->getValue();
+       if (i < 0 || i > 7) {
+            cout << "Error: Invalid register access." << endl;
+            exit(1); 
+        }
+        return R[i]->getValue();
     }
 
     void setRegister(int i, int result) // store result into selected register
     {
+        if (i < 0 || i > 7) {
+            cout << "Error: Invalid register access." << endl;
+            exit(1);
+        }
         flags.update(result); // check if the result was OF/UF/ZF/CF
         R[i]->setValue((signed char)result);  // make the result back into 1 byte
         
@@ -1085,8 +1093,9 @@ public:
         while (!program.isEmpty()) {
             Instruction* currentInst = program.front();
             program.dequeue();
+            currentInst->execute(cpu);
             pc++; 
-            currentInst->execute(cpu); 
+  
             delete currentInst;
         }
         printOutput();
