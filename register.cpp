@@ -317,7 +317,7 @@ class FlagRegister{
       {
         OF = (v > 127);
         UF = (v < -128);
-        ZF = (v == 0);
+        ZF = ((signed char)v == 0);
         CF = (v > 127 || v < -128);
 
           if (OF)
@@ -344,7 +344,7 @@ class FlagRegister{
 {
     OF = (v > 127);
     UF = (v < -128);
-    ZF = (v == 0);
+    ZF = ((signed char)v == 0);
 
     if (OF) cout << "Overflow Flag Activated" << endl;
     if (UF) cout << "Underflow Flag Activated" << endl;
@@ -959,7 +959,14 @@ private:
             regStr.pop_back(); // remove ","
         }
         if (regStr.length() >= 2 && regStr[0] == 'R') {
-            return regStr[1] - '0';
+            try {
+                int regNum = stoi(regStr.substr(1)); 
+                if (regNum >= 0 && regNum <= 7) {
+                    return regNum;
+                }
+            } catch (const std::exception& e) {
+                return -1;
+            }
         }
         return -1;
     }
@@ -1041,31 +1048,44 @@ private:
     }
 
     void handleLoadStore(const string& op, const string& arg2, int r1) {
+        string inner = arg2;
+        if (inner[0] == '[' && inner.back() == ']') {
+            inner = inner.substr(1, inner.length() - 2); 
+        }
+
         if (op == "LOAD") {
-          // LOAD R1, 20 (direct - number without #)
-            if (arg2[0] != '[') {
-                program.enqueue(new LOAD_Direct(r1, stoi(arg2)));
-            } 
-            // LOAD R1, [R2] (indirect - register in brackets)
-            else if (arg2[0] == '[' && arg2.back() == ']') {
-                int srcReg = parseRegister(arg2.substr(1, arg2.length() - 2));
+            if (inner[0] == 'R') {
+                // LOAD R1, [R2]
+                int srcReg = parseRegister(inner);
                 program.enqueue(new LOAD_Indirect(r1, srcReg));
+            } else {
+                // LOAD R1, [20] or LOAD R1, 20
+                program.enqueue(new LOAD_Direct(r1, stoi(inner)));
             }
-        } else if (op == "STORE") {
-          // STORE R1, 20 (direct)
-            if (arg2[0] != '[') {
-                program.enqueue(new STORE_Direct(r1, stoi(arg2)));
-            } 
-            // STORE R1, [R2] (indirect)
-            else if (arg2[0] == '[' && arg2.back() == ']') {
-                int destReg = parseRegister(arg2.substr(1, arg2.length() - 2));
-                program.enqueue(new STORE_Indirect(destReg, r1));
+        } 
+        else if (op == "STORE") {
+            if (inner[0] == 'R') {
+                // STORE R1, [R2]
+                int destReg = parseRegister(inner);
+                program.enqueue(new STORE_Indirect(r1, destReg)); 
+            } else {
+                //STORE R1, 43 or STORE R1, [43]
+                program.enqueue(new STORE_Direct(r1, stoi(inner)));
             }
         }
     }
 
 
-    void buildInstruction(const string& op, const string& arg1, const string& arg2) {
+    void buildInstruction(const string& op, string arg1, string arg2) {
+        
+      if (arg2.empty()) {
+            size_t commaPos = arg1.find(',');
+            if (commaPos != string::npos) {
+                arg2 = arg1.substr(commaPos + 1); // take value behind ","
+                arg1 = arg1.substr(0, commaPos);  // take value in front ","
+            }
+        }
+      
         int r1 = parseRegister(arg1);
         int r2 = parseRegister(arg2);
 
