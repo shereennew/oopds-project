@@ -1,4 +1,5 @@
-MOV R0, #42
-MOV [10], R0
-MOV R1, [10]
-DISPLAY R1
+MOV     R1, 5 
+ADD      R1, 6 
+MOV     R3, [R1] 
+MUL      R3, 4 
+STORE   20, R3

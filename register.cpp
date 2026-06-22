@@ -464,21 +464,17 @@ class ADD : public Instruction
 {
     private:
       int dest;  // dest = destination
-      int src;   // src = source     
+      int src;   // src = source 
+      bool isImm;  //imm = immediate    
 
     public:
-      ADD(int d, int s)
-      {
-        dest = d;
-        src = s;
+      ADD(int d, int s, bool imm = false) : dest(d), src(s), isImm(imm) {}
+      
+      void execute( CPU& cpu) override {
+        int val2 = isImm ? src : cpu.getRegister(src); 
+        int result = cpu.getRegister(dest) + val2; 
+        cpu.setRegister(dest,result); 
       }
-
-      void execute( CPU& cpu)
-      {
-        int result = cpu.getRegister(dest) + cpu.getRegister(src); // get values form register, then add 
-        cpu.setRegister(dest,result); // store result into destination register
-      }
-
 };
 
 class SUB : public Instruction
@@ -486,17 +482,14 @@ class SUB : public Instruction
     private:
       int dest;
       int src;
+      bool isImm;
 
     public:
-      SUB(int d,int s)
-      {
-        dest = d;
-        src = s;
-      }
+      SUB(int d,int s, bool imm = false) : dest(d), src(s), isImm(imm) {}
 
-      void execute ( CPU& cpu)
-      {
-        int result = cpu.getRegister(dest) - cpu.getRegister(src);
+      void execute ( CPU& cpu) override {
+        int val2 = isImm ? src : cpu.getRegister(src);
+        int result = cpu.getRegister(dest) - val2;
         cpu.setRegister(dest,result);
       }
 };
@@ -506,17 +499,14 @@ class MUL : public Instruction
     private:
       int dest;
       int src;
+      bool isImm;
 
     public:
-      MUL(int d,int s)
-      {
-        dest = d;
-        src = s;
-      }
+      MUL(int d,int s, bool imm = false) : dest(d), src(s), isImm(imm) {}
 
-      void execute ( CPU& cpu)
-      {
-        int result = cpu.getRegister(dest) * cpu.getRegister(src);
+      void execute ( CPU& cpu) override {
+        int val2 = isImm ? src : cpu.getRegister(src);
+        int result = cpu.getRegister(dest) * val2;
         cpu.setRegister(dest,result);
       }
 };
@@ -526,32 +516,23 @@ class DIV : public Instruction
     private:
       int dest;
       int src;
+      bool isImm;
 
     public:
-      DIV(int d,int s)
-      {
-        dest = d;
-        src = s;
-      }
+      DIV(int d,int s, bool imm = false) : dest(d), src(s), isImm(imm) {}
 
-      void execute ( CPU& cpu)
-      {
-        int division = cpu.getRegister(src);
-
-        if (division != 0)
-        {
-        int result = cpu.getRegister(dest) / cpu.getRegister(src);
-        cpu.setRegister(dest,result);
-        }
-
-        else
-        {
+      void execute ( CPU& cpu) override {
+        int val2 = isImm ? src : cpu.getRegister(src);
+        if (val2 != 0) {
+          int result = cpu.getRegister(dest) / val2;
+          cpu.setRegister(dest,result);
+        } else {
           cout << "Math Error: cannot be divide by 0" << endl;
+          exit(1);
         }
-
+      }
 
         
-      }
 };
 
 // MOV_DIRECT 
@@ -608,6 +589,24 @@ class MOV_ToMemory : public Instruction {
     void execute(CPU& cpu) override {
         signed char value = cpu.getRegister(src);
         cpu.getMemory().store(address, value);
+    }
+};
+
+// MOV R3, [R1]
+class MOV_Indirect : public Instruction {
+  private:
+    int dest;  
+    int srcAddr; 
+  public:
+    MOV_Indirect(int d, int sAddr) : dest(d), srcAddr(sAddr) {}
+    
+    void execute(CPU& cpu) override {
+        // 1. take address from R1
+        int address = cpu.getRegister(srcAddr);
+        // 2. take value
+        signed char value = cpu.getMemory().load(address);
+        // 3. save in R3
+        cpu.setRegister(dest, value);
     }
 };
 
@@ -957,29 +956,60 @@ private:
         if (!a1.empty() && a1.back() == ',') a1.pop_back();
         if (!a2.empty() && a2.back() == ',') a2.pop_back();
         
-        // MOV [20], R1
+        // handle MOV [R1], R2 or MOV [20], R1
         if (a1[0] == '[' && a1.back() == ']') {
-            int addr = stoi(a1.substr(1, a1.length() - 2));
-            program.enqueue(new MOV_ToMemory(addr, r2));
+            string inner = a1.substr(1, a1.length() - 2);
+            if (inner[0] == 'R') {
+                int destAddrReg = inner[1] - '0';
+                program.enqueue(new STORE_Indirect(r2, destAddrReg));
+            } else {
+                int addr = stoi(inner);
+                program.enqueue(new MOV_ToMemory(addr, r2));
+            }
         } 
-        
-        // MOV R1, [20]
+        // handle MOV R3, [R1] or MOV R1, [20]
         else if (a2[0] == '[' && a2.back() == ']') {
-            int addr = stoi(a2.substr(1, a2.length() - 2));
-            program.enqueue(new MOV_FromMemory(r1, addr));
+            string inner = a2.substr(1, a2.length() - 2);
+            if (inner[0] == 'R') {
+                int srcAddrReg = inner[1] - '0';
+                program.enqueue(new MOV_Indirect(r1, srcAddrReg));
+            } else {
+                int addr = stoi(inner);
+                program.enqueue(new MOV_FromMemory(r1, addr));
+            }
         } 
-        
-        // MOV R1, R2
+        // handle MOV R1, R2
         else if (a2[0] == 'R') {
             program.enqueue(new MOV_Direct(r1, r2));
         }
-
+        // handle MOV R1, 5 or MOV R1, #5
         else {
             string valStr = a2;
             if (valStr[0] == '#') valStr = valStr.substr(1);
             int immValue = stoi(valStr);
             program.enqueue(new MOV_Immediate(r1, immValue));
         }
+    }
+
+    void handleMath(const string& op, int r1, const string& arg2, int r2) {
+        string a2 = arg2; 
+        if (!a2.empty() && a2.back() == ',') a2.pop_back(); // clear ","
+        
+        bool isImm = (r2 == -1); // if parseRegister cannot parse R，then is integer
+        int val2 = 0;
+        
+        if (isImm) {
+            // delete # if there is
+            if (a2[0] == '#') a2 = a2.substr(1);
+            val2 = stoi(a2);
+        } else {
+            val2 = r2; 
+        }
+
+        if (op == "ADD") program.enqueue(new ADD(r1, val2, isImm));
+        else if (op == "SUB") program.enqueue(new SUB(r1, val2, isImm));
+        else if (op == "MUL") program.enqueue(new MUL(r1, val2, isImm));
+        else if (op == "DIV") program.enqueue(new DIV(r1, val2, isImm));
     }
     
     // SHL, SHR, ROL, ROR - NEED TO GET THE AMOUNT VALUE
@@ -1024,10 +1054,7 @@ private:
         int r1 = parseRegister(arg1);
         int r2 = parseRegister(arg2);
 
-        if (op == "ADD") program.enqueue(new ADD(r1, r2));
-        else if (op == "SUB") program.enqueue(new SUB(r1, r2));
-        else if (op == "MUL") program.enqueue(new MUL(r1, r2));
-        else if (op == "DIV") program.enqueue(new DIV(r1, r2));
+        if (op == "ADD" || op == "SUB" || op == "MUL" || op == "DIV") handleMath(op, r1, arg2, r2);
         else if (op == "INPUT") program.enqueue(new INPUT(r1));
         else if (op == "DISPLAY") program.enqueue(new DISPLAY(r1));
         else if (op == "RESET") program.enqueue(new RESET(arg1));
