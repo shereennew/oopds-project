@@ -340,6 +340,17 @@ class FlagRegister{
            }
       }
 
+      void updateForInput(int v) 
+{
+    OF = (v > 127);
+    UF = (v < -128);
+    ZF = (v == 0);
+
+    if (OF) cout << "Overflow Flag Activated" << endl;
+    if (UF) cout << "Underflow Flag Activated" << endl;
+    if (ZF) cout << "Zero Flag Activated" << endl;
+}
+
       void reset()
       {
         OF = false;
@@ -406,13 +417,17 @@ class CPU
         return R[i]->getValue();
     }
 
-    void setRegister(int i, int result) // store result into selected register
+    void setRegister(int i, int result, bool isMath = true) // store result into selected register
     {
         if (i < 0 || i > 7) {
             cout << "Error: Invalid register access." << endl;
             exit(1);
         }
-        flags.update(result); // check if the result was OF/UF/ZF/CF
+        if (isMath) {
+        flags.update(result); 
+    } else {
+        flags.updateForInput(result); 
+    }
         R[i]->setValue((signed char)result);  // make the result back into 1 byte
         
     }
@@ -752,7 +767,7 @@ public:
         int inputVal;
         cout << "? ";
         cin >> inputVal;
-        cpu.setRegister(dest, inputVal); 
+        cpu.setRegister(dest, inputVal,false); 
     }
 };
 
@@ -1088,11 +1103,12 @@ public:
             cout << "Error: Could not open file " << filename << endl;
             return;
         }
+        
         string line;
         while (getline(file, line)) {
             size_t commentPos = line.find(';'); // filter comments
             if (commentPos != string::npos) line = line.substr(0, commentPos);
-
+            
             stringstream ss(line);
             string op, arg1, arg2;
             if(ss >> op)
