@@ -791,7 +791,7 @@ public:
     }
 };
 
-// class created by Eryne
+// class created by Eryne 
 // for LOAD <DestinationRegister>, <address>
 class LOAD_Direct : public Instruction {
   private:
