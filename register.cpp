@@ -114,6 +114,12 @@ class MyStack {
 
     //add element to top
     void push(const T& value){
+
+      if (elements.size() >= 8) {
+        cout << "Error: Stack Overflow (Maximum capacity of 8 bytes reached)" << endl;
+        exit(1);
+      }
+
       elements.pushback(value);
     }
 
@@ -276,25 +282,22 @@ class Memory {
     }
   };
 
-class BaseRegister{
+class BaseRegister {
+public:
+    virtual signed char getValue() = 0;
+    virtual void setValue(signed char v) = 0;
+    virtual ~BaseRegister() {}
+};
+
+class GeneralRegister : public BaseRegister {
     private:
-      signed char value; // 1 Byte， -128 to 127
-
+        signed char value;  // 1 Byte， -128 to 127
+        
     public:
-      BaseRegister()  
-      {
-         value = 0; // initialize  value to 0 when register created
-      }
-
-      signed char getValue() // return current value stored in register
-      {
-          return value;
-      }
-
-      void setValue(signed char v)  // store new value into register
-      {
-          value = v;
-      }
+        GeneralRegister() { value = 0; }
+        
+        signed char getValue() override { return value; }   
+        void setValue(signed char v) override { value = v; }
 };
 
 class FlagRegister{
@@ -375,22 +378,42 @@ class FlagRegister{
 class CPU
 {
   private:
-    BaseRegister R[8]; // R0-R7, R=register
+    BaseRegister* R[8]; // R0-R7, R=register
     FlagRegister flags; // CPU flags
     signed char SI = 0; // stack index register, added by Eryne
     Memory memory; // memory object, added by Eryne
     MyStack<signed char> stack; // for push and pop classes, added by Eryne
 
   public:
+    CPU() {
+        for(int i = 0; i < 8; i++) {
+            R[i] = new GeneralRegister(); 
+        }
+    }
+
+    ~CPU() {
+        for(int i = 0; i < 8; i++) {
+            delete R[i]; 
+        }
+    }
+   
     signed char getRegister(int i) // get value from  selected register
     {
-       return R[i].getValue();
+       if (i < 0 || i > 7) {
+            cout << "Error: Invalid register access." << endl;
+            exit(1); 
+        }
+        return R[i]->getValue();
     }
 
     void setRegister(int i, int result) // store result into selected register
     {
+        if (i < 0 || i > 7) {
+            cout << "Error: Invalid register access." << endl;
+            exit(1);
+        }
         flags.update(result); // check if the result was OF/UF/ZF/CF
-        R[i].setValue((signed char)result);  // make the result back into 1 byte
+        R[i]->setValue((signed char)result);  // make the result back into 1 byte
         
     }
 
@@ -726,21 +749,11 @@ public:
         dest = d;
     }
 
-    void execute(CPU& cpu) override
-    {
+    void execute(CPU& cpu) override {
         int inputVal;
-
         cout << "? ";
-
         cin >> inputVal;
-
-        while(inputVal < -128 || inputVal > 127)
-        {
-            cout << "? ";
-            cin >> inputVal;
-        }
-
-        cpu.setRegister(dest, inputVal);
+        cpu.setRegister(dest, inputVal); 
     }
 };
 
@@ -908,39 +921,25 @@ class POP : public Instruction {
 class Runner {
 private:
     CPU cpu;
-    int pc;                         // program counter
-    MyVector<Instruction*> program; 
+    unsigned char pc;                         // program counter
+    MyQueue<Instruction*> program; 
 
-    void print4Digit(int value)
-{
-    if(value < 0)
-    {
-        cout << "-";
-
-        value = -value;
-
-        if(value < 10)
-            cout << "00" << value;
-        else if(value < 100)
-            cout << "0" << value;
-        else
-            cout << value;
+    void print4Digit(ostream& out, int value) {
+        if(value < 0) {
+            out << "-";
+            value = -value;
+            if(value < 10) out << "00" << value;
+            else if(value < 100) out << "0" << value;
+            else out << value;
+        } else {
+            if(value < 10) out << "000" << value;
+            else if(value < 100) out << "00" << value;
+            else if(value < 1000) out << "0" << value;
+            else out << value;
+        }
     }
-    else
-    {
-        if(value < 10)
-            cout << "000" << value;
-        else if(value < 100)
-            cout << "00" << value;
-        else if(value < 1000)
-            cout << "0" << value;
-        else
-            cout << value;
-    }
-}
 
     // parsing instructions
-    // 1. parse register text (exp: convert "R0," or "R5" to the integer 0 or 5).
     int parseRegister(string regStr) {
         if (!regStr.empty() && regStr.back() == ',') {
             regStr.pop_back(); // remove ","
@@ -950,132 +949,108 @@ private:
         }
         return -1;
     }
+    
+    void handleMov(const string& arg1, const string& arg2, int r1, int r2) {
+      // Clean strings (remove trailing commas)  
+        string a1 = arg1; 
+        string a2 = arg2;
+        if (!a1.empty() && a1.back() == ',') a1.pop_back();
+        if (!a2.empty() && a2.back() == ',') a2.pop_back();
+        
+        // MOV [20], R1
+        if (a1[0] == '[' && a1.back() == ']') {
+            int addr = stoi(a1.substr(1, a1.length() - 2));
+            program.enqueue(new MOV_ToMemory(addr, r2));
+        } 
+        
+        // MOV R1, [20]
+        else if (a2[0] == '[' && a2.back() == ']') {
+            int addr = stoi(a2.substr(1, a2.length() - 2));
+            program.enqueue(new MOV_FromMemory(r1, addr));
+        } 
+        
+        // MOV R1, R2
+        else if (a2[0] == 'R') {
+            program.enqueue(new MOV_Direct(r1, r2));
+        }
 
-    // 2. constructs the corresponding derived instruction object based on the identified opcode
+        else {
+            string valStr = a2;
+            if (valStr[0] == '#') valStr = valStr.substr(1);
+            int immValue = stoi(valStr);
+            program.enqueue(new MOV_Immediate(r1, immValue));
+        }
+    }
+    
+    // SHL, SHR, ROL, ROR - NEED TO GET THE AMOUNT VALUE
+    void handleShiftRotate(const string& op, const string& arg2, int r1) {
+        // Check if second argument is a number (like #2 or just 2)
+        string amountStr = arg2;
+        if (amountStr[0] == '#') amountStr = amountStr.substr(1);
+        int amount = stoi(amountStr);
+        
+        if (op == "SHL") program.enqueue(new SHL(r1, amount)); 
+        else if (op == "SHR") program.enqueue(new SHR(r1, amount));
+        else if (op == "ROL") program.enqueue(new ROL(r1, amount));
+        else if (op == "ROR") program.enqueue(new ROR(r1, amount));
+    }
+
+    void handleLoadStore(const string& op, const string& arg2, int r1) {
+        if (op == "LOAD") {
+          // LOAD R1, 20 (direct - number without #)
+            if (arg2[0] != '[') {
+                program.enqueue(new LOAD_Direct(r1, stoi(arg2)));
+            } 
+            // LOAD R1, [R2] (indirect - register in brackets)
+            else if (arg2[0] == '[' && arg2.back() == ']') {
+                int srcReg = parseRegister(arg2.substr(1, arg2.length() - 2));
+                program.enqueue(new LOAD_Indirect(r1, srcReg));
+            }
+        } else if (op == "STORE") {
+          // STORE R1, 20 (direct)
+            if (arg2[0] != '[') {
+                program.enqueue(new STORE_Direct(r1, stoi(arg2)));
+            } 
+            // STORE R1, [R2] (indirect)
+            else if (arg2[0] == '[' && arg2.back() == ']') {
+                int destReg = parseRegister(arg2.substr(1, arg2.length() - 2));
+                program.enqueue(new STORE_Indirect(destReg, r1));
+            }
+        }
+    }
+
+
     void buildInstruction(const string& op, const string& arg1, const string& arg2) {
         int r1 = parseRegister(arg1);
         int r2 = parseRegister(arg2);
 
-        if (op == "ADD") program.pushback(new ADD(r1, r2));
-        else if (op == "SUB") program.pushback(new SUB(r1, r2));
-        else if (op == "MUL") program.pushback(new MUL(r1, r2));
-        else if (op == "DIV") program.pushback(new DIV(r1, r2));
-        else if (op == "INPUT") program.pushback(new INPUT(r1));
-        else if (op == "DISPLAY") program.pushback(new DISPLAY(r1));
-        else if(op == "RESET"){program.pushback(new RESET(arg1));}
-else if (op == "MOV") {
-    // Clean strings (remove trailing commas)
-    string a1 = arg1;
-    string a2 = arg2;
-    if (!a1.empty() && a1.back() == ',') a1.pop_back();
-    if (!a2.empty() && a2.back() == ',') a2.pop_back();
-    
-    // MOV [20], R1
-    if (a1[0] == '[' && a1.back() == ']') {
-        int addr = stoi(a1.substr(1, a1.length() - 2));
-        program.pushback(new MOV_ToMemory(addr, r2));
-    }
-    // MOV R1, [20]
-    else if (a2[0] == '[' && a2.back() == ']') {
-        int addr = stoi(a2.substr(1, a2.length() - 2));
-        program.pushback(new MOV_FromMemory(r1, addr));
-    }
-    // MOV R1, #5
-    else if (a2[0] == '#') {
-        int immValue = stoi(a2.substr(1));
-        program.pushback(new MOV_Immediate(r1, immValue));
-    }
-    // MOV R1, R2
-    else if (a2[0] == 'R') {
-        program.pushback(new MOV_Direct(r1, r2));
-    }
-}
-// SHL, SHR, ROL, ROR - NEED TO GET THE AMOUNT VALUE
-else if (op == "SHL") {
-    // Check if second argument is a number (like #2 or just 2)
-    string amountStr = arg2;
-    if (amountStr[0] == '#') {
-        amountStr = amountStr.substr(1);
-    }
-    int amount = stoi(amountStr);
-    program.pushback(new SHL(r1, amount));  // Pass amount, NOT r2!
-}
-else if (op == "SHR") {
-    string amountStr = arg2;
-    if (amountStr[0] == '#') {
-        amountStr = amountStr.substr(1);
-    }
-    int amount = stoi(amountStr);
-    program.pushback(new SHR(r1, amount));
-}
-else if (op == "ROL") {
-    string amountStr = arg2;
-    if (amountStr[0] == '#') {
-        amountStr = amountStr.substr(1);
-    }
-    int amount = stoi(amountStr);
-    program.pushback(new ROL(r1, amount));
-}
-else if (op == "ROR") {
-    string amountStr = arg2;
-    if (amountStr[0] == '#') {
-        amountStr = amountStr.substr(1);
-    }
-    int amount = stoi(amountStr);
-    program.pushback(new ROR(r1, amount));
-}
-else if (op == "INC") {
-    program.pushback(new INC(r1));
-}
-else if (op == "DEC") {
-    program.pushback(new DEC(r1));
-}
-else if (op == "LOAD") {
-    // LOAD R1, 20 (direct - number without #)
-    if (arg2[0] != '[') {
-        int addr = stoi(arg2);  // Direct number like "20"
-        program.pushback(new LOAD_Direct(r1, addr));
-    }
-    // LOAD R1, [R2] (indirect - register in brackets)
-    else if (arg2[0] == '[' && arg2.back() == ']') {
-        string regStr = arg2.substr(1, arg2.length() - 2);
-        int srcReg = parseRegister(regStr);
-        program.pushback(new LOAD_Indirect(r1, srcReg));
-    }
-}
-else if (op == "STORE") {
-    // STORE R1, 20 (direct)
-    if (arg2[0] != '[') {
-        int addr = stoi(arg2);
-        program.pushback(new STORE_Direct(r1, addr));
-    }
-    // STORE R1, [R2] (indirect)
-    else if (arg2[0] == '[' && arg2.back() == ']') {
-        string regStr = arg2.substr(1, arg2.length() - 2);
-        int destReg = parseRegister(regStr);
-        program.pushback(new STORE_Indirect(destReg, r1));
-    }
-}
-else if (op == "PUSH") {
-    program.pushback(new PUSH(r1));
-}
-else if (op == "POP") {
-    program.pushback(new POP(r1));
-}
-
-else
-{
-    cout << "Error: Unknown instruction " << op << endl;
-    exit(1);
-}
+        if (op == "ADD") program.enqueue(new ADD(r1, r2));
+        else if (op == "SUB") program.enqueue(new SUB(r1, r2));
+        else if (op == "MUL") program.enqueue(new MUL(r1, r2));
+        else if (op == "DIV") program.enqueue(new DIV(r1, r2));
+        else if (op == "INPUT") program.enqueue(new INPUT(r1));
+        else if (op == "DISPLAY") program.enqueue(new DISPLAY(r1));
+        else if (op == "RESET") program.enqueue(new RESET(arg1));
+        else if (op == "MOV") handleMov(arg1, arg2, r1, r2);
+        else if (op == "SHL" || op == "SHR" || op == "ROL" || op == "ROR") handleShiftRotate(op, arg2, r1);
+        else if (op == "INC") program.enqueue(new INC(r1));
+        else if (op == "DEC") program.enqueue(new DEC(r1));
+        else if (op == "LOAD" || op == "STORE") handleLoadStore(op, arg2, r1);
+        else if (op == "PUSH") program.enqueue(new PUSH(r1));
+        else if (op == "POP") program.enqueue(new POP(r1));
+        else {
+            cout << "Error: Unknown instruction " << op << endl;
+            exit(1);
+        }
     }
 
 public:
     Runner() { pc = 0; }
 
     ~Runner() { // destructor (releases memory dynamically allocated to instruction objects)
-        for (int i = 0; i < program.size(); i++) {
-            delete program[i];
+        while (!program.isEmpty()) {
+            delete program.front();
+            program.dequeue();
         }
     }
 
@@ -1115,87 +1090,65 @@ public:
     // initialised to 0 when loading a new program and is updated after the execution of any statement
     void run() {
         pc = 0;
-        while (pc < program.size()) {
-            Instruction* currentInst = program[pc];
+        while (!program.isEmpty()) {
+            Instruction* currentInst = program.front();
+            program.dequeue();
+            currentInst->execute(cpu);
             pc++; 
-            currentInst->execute(cpu); // instruction execution flow
+  
+            delete currentInst;
         }
         printOutput();
     }
 
-    // output formatting
+    void printRegistersAndFlags(ostream& out) {
+        out << "#Registers#";
+        for(int i = 0; i < 8; i++) {
+            print4Digit(out, (int)cpu.getRegister(i));
+            out << "#";
+        }
+        out << endl << "#Flags#";
+        out << "OF#" << cpu.getFlags().getOF() << "#"
+            << "UF#" << cpu.getFlags().getUF() << "#"
+            << "CF#" << cpu.getFlags().getCF() << "#"
+            << "ZF#" << cpu.getFlags().getZF() << "#" << endl;
+    }
+
+    void printMemoryDump(ostream& out) {
+        out << "#Memory#" << endl;
+        for(int i = 0; i < 64; i++) {
+            if(i % 8 == 0) out << "#";
+            print4Digit(out, (int)cpu.getMemory().load(i));
+            out << "#";
+            if((i+1) % 8 == 0) out << endl;
+        }
+    }
+
     void printOutput() {
+        cout << "#Begin#" << endl;
+        printRegistersAndFlags(cout);
+        cout << "#PC#";
+        print4Digit(cout, pc);
+        cout << "#" << endl;
+        printMemoryDump(cout);
+        cout << "#End#" << endl;
 
-    cout << "#Begin#" << endl;
-
-    // Registers
-    cout << "#Registers#";
-
-    for(int i = 0; i < 8; i++)
-    {
-        int value = (int)cpu.getRegister(i);
-
-        print4Digit(value);
-
-        cout << "#";
+        // output.txt
+        ofstream outFile("output.txt");
+        if(outFile.is_open()) {
+            outFile << "#Begin#" << endl;
+            printRegistersAndFlags(outFile);
+            outFile << "#PC#";
+            print4Digit(outFile, pc);
+            outFile << "#" << endl;
+            printMemoryDump(outFile);
+            outFile << "#End#" << endl;
+            outFile.close();
+            cout << "\n[System] Execution finished. Results have been saved to 'output.txt'." << endl;
+        } else {
+            cout << "\n[Error] Unable to create 'output.txt' file." << endl;
+        }
     }
-
-    cout << endl;
-
-    // Flags
-    cout << "#Flags#";
-
-    cout << "OF#" 
-         << cpu.getFlags().getOF()
-         << "#";
-
-    cout << "UF#"
-         << cpu.getFlags().getUF()
-         << "#";
-
-    cout << "CF#"
-         << cpu.getFlags().getCF()
-         << "#";
-
-    cout << "ZF#"
-         << cpu.getFlags().getZF()
-         << "#";
-
-    cout << endl;
-
-
-    // PC
-    cout << "#PC#";
-
-    print4Digit(pc);
-
-    cout << "#" << endl;
-
-    // Memory
-    cout << "#Memory#" << endl;
-
-
-    for(int i=0;i<64;i++)
-    {
-
-        if(i % 8 == 0)
-            cout << "#";
-
-
-        int value = (int)cpu.getMemory().load(i);
-
-        print4Digit(value);
-
-        cout<<"#";
-
-
-        if((i+1)%8==0)
-            cout<<endl;
-
-    }
-
-    cout<<"#End#"<<endl;
-  }
 };
 
 int main() {
