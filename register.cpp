@@ -973,43 +973,22 @@ private:
     
     void handleMov(const string& arg1, const string& arg2, int r1, int r2) {
       // Clean strings (remove trailing commas)  
-        string a1 = arg1; 
         string a2 = arg2;
-        if (!a1.empty() && a1.back() == ',') a1.pop_back();
         if (!a2.empty() && a2.back() == ',') a2.pop_back();
         
-        // handle MOV [R1], R2 or MOV [20], R1
-        if (a1[0] == '[' && a1.back() == ']') {
-            string inner = a1.substr(1, a1.length() - 2);
-            if (inner[0] == 'R') {
-                int destAddrReg = inner[1] - '0';
-                program.enqueue(new STORE_Indirect(r2, destAddrReg));
-            } else {
-                int addr = stoi(inner);
-                program.enqueue(new MOV_ToMemory(addr, r2));
-            }
-        } 
-        // handle MOV R3, [R1] or MOV R1, [20]
-        else if (a2[0] == '[' && a2.back() == ']') {
+        // MOV R3, [R1]
+        if (a2[0] == '[' && a2.back() == ']') {
             string inner = a2.substr(1, a2.length() - 2);
-            if (inner[0] == 'R') {
-                int srcAddrReg = inner[1] - '0';
-                program.enqueue(new MOV_Indirect(r1, srcAddrReg));
-            } else {
-                int addr = stoi(inner);
-                program.enqueue(new MOV_FromMemory(r1, addr));
-            }
+            program.enqueue(new MOV_Indirect(r1, parseRegister(inner)));
         } 
-        // handle MOV R1, R2
-        else if (a2[0] == 'R') {
+        // MOV R1, R2
+        else if (r2 != -1) {
             program.enqueue(new MOV_Direct(r1, r2));
         }
-        // handle MOV R1, 5 or MOV R1, #5
+        // MOV R1, 5 or MOV R1, #5 
         else {
-            string valStr = a2;
-            if (valStr[0] == '#') valStr = valStr.substr(1);
-            int immValue = stoi(valStr);
-            program.enqueue(new MOV_Immediate(r1, immValue));
+            if (a2[0] == '#') a2 = a2.substr(1);
+            program.enqueue(new MOV_Immediate(r1, stoi(a2)));
         }
     }
 

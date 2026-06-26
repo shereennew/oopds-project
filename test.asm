@@ -1,0 +1,4 @@
+MOV R1, 10     
+MOV R0, 5
+STORE R0, 10
+MOV R3, [R1]    
