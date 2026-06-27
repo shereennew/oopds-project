@@ -5,8 +5,11 @@
 #include <cstdlib>
 using namespace std;
 
-// custom vector class 
-// template created by Eryne 
+// ============================================================================
+// Class: MyVector
+// Description: Custom vector class 
+// Author: Eryne
+// ============================================================================
 template<typename T>
 class MyVector {
   private: 
@@ -102,8 +105,11 @@ class MyVector {
     }
 };
 
-// custom stack class
-// template created by Eryne
+// ============================================================================
+// Class: MyStack
+// Description: Custom stack class 
+// Author: Eryne
+// ============================================================================
 template<typename T>
 class MyStack {
   private:
@@ -154,8 +160,11 @@ class MyStack {
     }
 };
 
-// custom queue class
-// template created by Eryne
+// ============================================================================
+// Class: MyQueue
+// Description: Custom queue class 
+// Author: Eryne
+// ============================================================================
 template<typename T>
 class MyQueue {
   private:
@@ -242,7 +251,10 @@ class MyQueue {
     }
 };
 
-// class created by Eryne
+// ============================================================================
+// Class: Memory
+// Author: Eryne
+// ============================================================================
 class Memory {
   private:
     signed char memory[64]; //64 bytes
@@ -282,6 +294,10 @@ class Memory {
     }
   };
 
+// ============================================================================
+// Class: BaseRegister, GeneralRegister, FlagRegister, CPU
+// Author: Lai
+// ============================================================================
 class BaseRegister {
 public:
     virtual signed char getValue() = 0;
@@ -466,15 +482,22 @@ class CPU
     }
 };
 
+// ============================================================================
+// INSTRUCTION SET IMPLEMENTATION
+// ADD, SUB, MUL, DIV - Contributed by Lai
+// MOV, SHL, SHR, ROL, ROR, INC, DEC - Contributed by Shereen
+// LOAD, STORE, PUSH, POP - Contributed by Eryne
+// INPUT, DISPLAY, RESET - Contributed by Kelly
+// ============================================================================
 
+// class created by Shereen
 class Instruction{ 
     public:
        virtual void execute( CPU& cpu) = 0; //every child class must create execute
        virtual ~Instruction(){}
 };
 
-
-//======== ADD ============
+// class created by Lai
 class ADD : public Instruction
 {
     private:
@@ -492,6 +515,7 @@ class ADD : public Instruction
       }
 };
 
+// class created by Lai
 class SUB : public Instruction
 {
     private:
@@ -509,6 +533,7 @@ class SUB : public Instruction
       }
 };
 
+// class created by Lai
 class MUL : public Instruction
 {
     private:
@@ -526,6 +551,7 @@ class MUL : public Instruction
       }
 };
 
+// class created by Lai
 class DIV : public Instruction
 {
     private:
@@ -550,6 +576,7 @@ class DIV : public Instruction
         
 };
 
+// class created by Shereen
 // MOV_DIRECT 
 class MOV_Direct : public Instruction {
   private:
@@ -565,6 +592,7 @@ class MOV_Direct : public Instruction {
     }
 };
 
+// class created by Shereen
 // MOV_IMMEDIATE
 class MOV_Immediate : public Instruction {
   private:
@@ -579,6 +607,7 @@ class MOV_Immediate : public Instruction {
     }
 };
 
+// class created by Shereen
 class MOV_FromMemory : public Instruction {
   private:
     int dest;
@@ -594,6 +623,7 @@ class MOV_FromMemory : public Instruction {
     }
 };
 
+// class created by Shereen
 class MOV_ToMemory : public Instruction {
   private:
     int address;  // memory address FIRST
@@ -607,6 +637,7 @@ class MOV_ToMemory : public Instruction {
     }
 };
 
+// class created by Shereen
 // MOV R3, [R1]
 class MOV_Indirect : public Instruction {
   private:
@@ -625,6 +656,7 @@ class MOV_Indirect : public Instruction {
     }
 };
 
+// class created by Shereen
 // SHL (Shift Left)
 class SHL : public Instruction {
   private:
@@ -648,6 +680,7 @@ class SHL : public Instruction {
     }
 };
 
+// class created by Shereen
 // SHR (Shift Right)
 class SHR : public Instruction {
   private:
@@ -674,7 +707,7 @@ class SHR : public Instruction {
     }
 };
 
-
+// class created by Shereen
 //ROL (Rotate Left)
 class ROL : public Instruction {
   private:
@@ -694,6 +727,7 @@ class ROL : public Instruction {
     }
 };
 
+// class created by Shereen
 //ROR (Rotate Right)
 class ROR : public Instruction {
   private:
@@ -713,6 +747,7 @@ class ROR : public Instruction {
     }
 };
 
+// class created by Shereen
 //INC (Increment)
 class INC : public Instruction {
   private:
@@ -733,6 +768,7 @@ class INC : public Instruction {
     }
 };
 
+// class created by Shereen
 //DEC (Decrement)
 class DEC : public Instruction {
   private:
@@ -753,6 +789,7 @@ class DEC : public Instruction {
     }
 };
 
+// class created by Kelly
 class INPUT : public Instruction {
 private:
     int dest;
@@ -771,6 +808,7 @@ public:
     }
 };
 
+// class created by Kelly
 class DISPLAY : public Instruction {
 private:
     int src;
@@ -787,12 +825,12 @@ public:
     }
 };
 
+// class created by Kelly
 class RESET : public Instruction {
 private:
     string flagName;
 
 public:
-
     RESET(string flag) {
         flagName = flag;
     }
@@ -932,36 +970,43 @@ class POP : public Instruction {
     }
 };
 
+// ============================================================================
+// Class: Runner
+// Author: Kelly
+// ============================================================================
 class Runner {
 private:
     CPU cpu;
-    unsigned char pc;                         // program counter
+    unsigned char pc;   // program counter
     MyQueue<Instruction*> program; 
 
+    // Helper function to print values in a consistent 4-digit format (e.g., 0005, -020)
     void print4Digit(ostream& out, int value) {
         if(value < 0) {
             out << "-";
-            value = -value;
-            if(value < 10) out << "00" << value;
-            else if(value < 100) out << "0" << value;
-            else out << value;
+            value = -value; // convert to positive
+            if(value < 10) out << "00" << value;       // e.g., -5   -> -005
+            else if(value < 100) out << "0" << value;  // e.g., -45  -> -045
+            else out << value;                         // e.g., -123 -> -123
         } else {
-            if(value < 10) out << "000" << value;
-            else if(value < 100) out << "00" << value;
-            else if(value < 1000) out << "0" << value;
-            else out << value;
+            if(value < 10) out << "000" << value;      // e.g.,  5  -> 0005
+            else if(value < 100) out << "00" << value; // e.g., 45 -> 0045
+            else if(value < 1000) out << "0" << value; // e.g., 456  -> 0456
+            else out << value;                         // e.g., 1234 -> 1234
         }
     }
 
-    // parsing instructions
+    // Parses a register string (e.g., "R1", "R1,") and returns the integer index
+    // Returns -1 if it's not a valid register
     int parseRegister(string regStr) {
         if (!regStr.empty() && regStr.back() == ',') {
             regStr.pop_back(); // remove ","
         }
+        // check have at least 2 char and start with 'R'
         if (regStr.length() >= 2 && regStr[0] == 'R') {
             try {
-                int regNum = stoi(regStr.substr(1)); 
-                if (regNum >= 0 && regNum <= 7) {
+                int regNum = stoi(regStr.substr(1));  // extract num and convert string to int
+                if (regNum >= 0 && regNum <= 7) {  // check R0-R7
                     return regNum;
                 }
             } catch (const std::exception& e) {
@@ -971,10 +1016,11 @@ private:
         return -1;
     }
     
+    // Handles all variations of MOV instructions (Direct, Indirect, Immediate)
+    // and enqueues the appropriate Instruction object
     void handleMov(const string& arg1, const string& arg2, int r1, int r2) {
-      // Clean strings (remove trailing commas)  
-        string a2 = arg2;
-        if (!a2.empty() && a2.back() == ',') a2.pop_back();
+        string a2 = arg2;   
+        if (!a2.empty() && a2.back() == ',') a2.pop_back(); // Clean strings (remove trailing commas)  
         
         // MOV R3, [R1]
         if (a2[0] == '[' && a2.back() == ']') {
@@ -1054,9 +1100,7 @@ private:
         }
     }
 
-
     void buildInstruction(const string& op, string arg1, string arg2) {
-        
       if (arg2.empty()) {
             size_t commaPos = arg1.find(',');
             if (commaPos != string::npos) {
@@ -1103,33 +1147,37 @@ public:
             return;
         }
         
+        MyVector<string> fileLines;
         string line;
         while (getline(file, line)) {
-            size_t commentPos = line.find(';'); // filter comments
-            if (commentPos != string::npos) line = line.substr(0, commentPos);
-            
-            stringstream ss(line);
+            fileLines.pushback(line);
+        }
+        file.close();
+        for (int i = 0; i < fileLines.size(); i++) {
+            string currentLine = fileLines[i];
+            size_t commentPos = currentLine.find(';'); // filter comments
+            if (commentPos != string::npos) {
+                currentLine = currentLine.substr(0, commentPos);
+            }
+            if (currentLine.empty()) continue; 
+            stringstream ss(currentLine);
             string op, arg1, arg2;
             if(ss >> op)
             {
                 ss >> arg1 >> arg2;
-
                 string extra;
-
                 if(ss >> extra)
                 {
                     cout << "Error: Multiple instructions on one line" << endl;
                     exit(1);
                 }
-
-                buildInstruction(op,arg1,arg2);
+                buildInstruction(op, arg1, arg2);
             }
         }
-        file.close();
     }
 
-    // pc updates
-    // initialised to 0 when loading a new program and is updated after the execution of any statement
+    // Main execution loop. Pops instructions from the queue, executes them on 
+    // the CPU, updates the Program Counter and cleans up memory
     void run() {
         pc = 0;
         while (!program.isEmpty()) {
@@ -1165,7 +1213,8 @@ public:
             if((i+1) % 8 == 0) out << endl;
         }
     }
-
+    
+    // Generates the final snapshot of Registers, Flags, and Memory, printing to both console and output.txt
     void printOutput() {
         cout << "#Begin#" << endl;
         printRegistersAndFlags(cout);
