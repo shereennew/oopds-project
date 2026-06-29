@@ -50,7 +50,8 @@ class MyVector {
       }
     }
 
-    // assignment operator to replace array
+    // assignment operator for deep copy
+    // replaces this vector's contents with a copy of 'other'
     MyVector& operator=(const MyVector& other){
       if (this == &other) return *this;
       delete[] data;
@@ -121,8 +122,8 @@ class MyStack {
     //add element to top
     void push(const T& value){
 
-      if (elements.size() >= 8) {
-        cout << "Error: Stack Overflow (Maximum capacity of 8 bytes reached)" << endl;
+      if (elements.size() >= 128) {
+        cout << "Error: Stack Overflow (Maximum capacity reached)" << endl;
         exit(1);
       }
 
@@ -898,7 +899,7 @@ class LOAD_Indirect : public Instruction {
 // for STORE <Source Register>, <memoryAddress>
 class STORE_Direct : public Instruction {
   private:
-    int srcReg; // source register example: [R1]
+    int srcReg; // source register example: R1
     int address; // memory address example: 20
   public:
     // stores source register and memory address
@@ -913,11 +914,11 @@ class STORE_Direct : public Instruction {
 };
 
 // class created by Eryne
-// for STORE <[DestinationRegister]> , <SourceRegister>
+// for STORE <SourceRegister> , <[AddressRegister]>
 class STORE_Indirect : public Instruction{
   private:
-    int srcReg; // source register example: r1
-    int addressReg; // register holding address example: [r2]
+    int srcReg; // source register example: R1
+    int addressReg; // register holding address example: [R2]
   public:
     // stores address register and source register
     STORE_Indirect(int src, int addrReg) : srcReg(src), addressReg(addrReg) {}
