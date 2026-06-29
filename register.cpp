@@ -1144,7 +1144,7 @@ public:
         ifstream file(filename);
         if (!file.is_open()) {
             cout << "Error: Could not open file " << filename << endl;
-            return;
+            exit(1);
         }
         
         MyVector<string> fileLines;
@@ -1245,8 +1245,12 @@ public:
 int main() {
     Runner vm;
     
-    vm.loadFile("test.asm"); 
-    vm.run(); 
+    string filename;
+    cout << "Enter assembly file name: ";
+    cin >> filename;
+
+    vm.loadFile(filename);
+    vm.run();
 
     return 0;
 }
