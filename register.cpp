@@ -898,15 +898,15 @@ class LOAD_Indirect : public Instruction {
 // for STORE <Destination Register>, <memoryAddress>
 class STORE_Direct : public Instruction {
   private:
-    int srcReg; // source register example: [R1]
+    int destReg; // destination register example: R1
     int address; // memory address example: 20
   public:
     // stores source register and memory address
-    STORE_Direct(int src, int addr) : srcReg(src), address(addr) {}
+    STORE_Direct(int dest, int addr) : destReg(dest), address(addr) {}
 
     void execute (CPU& cpu) override {
       // get value from register
-      signed char value = cpu.getRegister(srcReg);
+      signed char value = cpu.getRegister(destReg);
       // store value to memory at address
       cpu.getMemory().store(address, value);
     }
@@ -916,17 +916,17 @@ class STORE_Direct : public Instruction {
 // for STORE <[DestinationRegister]> , <SourceRegister>
 class STORE_Indirect : public Instruction{
   private:
-    int srcReg; // source register example: [r1]
-    int addressReg; // register holding address example: r2
+    int destReg; // source register example: r1
+    int addressReg; // register holding address example: [r2]
   public:
     // stores address register and source register
-    STORE_Indirect(int src, int addrReg) : srcReg(src), addressReg(addrReg) {}
+    STORE_Indirect(int dest, int addrReg) : destReg(dest), addressReg(addrReg) {}
 
     void execute(CPU& cpu) override {
       // get address from addressReg
       int address = cpu.getRegister(addressReg);
       // get value from srcReg
-      signed char value = cpu.getRegister(srcReg);
+      signed char value = cpu.getRegister(destReg);
       // store value to memory at that address
       cpu.getMemory().store(address, value);
     }
