@@ -1,0 +1,14 @@
+; Factorial of 4
+
+MOV R0, #4
+MOV R1, #3
+
+MUL R0, R1
+
+MOV R1, #2
+MUL R0, R1
+
+MOV R1, #1
+MUL R0, R1
+
+DISPLAY R0
