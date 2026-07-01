@@ -27,7 +27,7 @@ class MyVector {
         newData[i] = data[i];
       }
       
-      delete[] data; //delete old data
+      delete[] data; //free old array to prevent memory leak
       data = newData; //point to new array
       cap = newCapacity; //update capacity
     }
@@ -40,7 +40,7 @@ class MyVector {
       data = new T[cap]; //points to the allocated memory
     }
 
-    // copy constructor for creating a vector as a copy for existing vector
+    // copy constructor for creating a new vector from an existing one
     MyVector(const MyVector& other){
       sz = other.sz;
       cap = other.cap;
@@ -50,10 +50,9 @@ class MyVector {
       }
     }
 
-    // assignment operator for deep copy
-    // replaces this vector's contents with a copy of 'other'
+    // assignment operator for assigning an existing vector to another vector
     MyVector& operator=(const MyVector& other){
-      if (this == &other) return *this;
+      if (this == &other) return *this; // check if object is assigned to itself
       delete[] data;
       sz = other.sz;
       cap = other.cap;
@@ -64,7 +63,7 @@ class MyVector {
       return *this;
     }
     
-    // Destructor if Myvector out of scope
+    // Destructor if myvector out of scope to prevent memory leak
     ~MyVector() {
       delete[] data;
     }
@@ -85,7 +84,7 @@ class MyVector {
       }
     }
 
-    // allows using square brackets
+    // allows using square brackets for array syntax
     const T& operator[](int index){
       return data[index];
     }
@@ -217,6 +216,7 @@ class MyQueue {
       delete[] data;
     }
 
+    // adds a new element to the back of the queue
     void enqueue(const T& value){
       if (sz == cap){ // calls grow to create a bigger arr if capacity is full
         grow();
@@ -226,6 +226,7 @@ class MyQueue {
       sz++;
     }
 
+    // removes the front element
     void dequeue(){
       if (isEmpty()){
         cout << "Error: Cannot dequeue from empty queue" << endl;
@@ -410,7 +411,7 @@ class CPU
     FlagRegister flags; // CPU flags
     signed char SI = 0; // stack index register, added by Eryne
     Memory memory; // memory object, added by Eryne
-    MyStack<signed char> stack; // for push and pop classes, added by Eryne
+    MyStack<signed char> stack; // for push and pop instructions, added by Eryne
 
   public:
     CPU() {
@@ -466,7 +467,7 @@ class CPU
         return;
       }
       if (value < -128) {
-        cout << "Error: Stack overflow, SI below -128" << endl;
+        cout << "Error: Stack underflow, SI below -128" << endl;
         return;
       }
       SI = value;
@@ -861,8 +862,8 @@ public:
 // for LOAD <DestinationRegister>, <address>
 class LOAD_Direct : public Instruction {
   private:
-    int destReg; // destination register(R1)
-    int address; // memory address (20)
+    int destReg; // destination register R1
+    int address; // memory address 20
   public:
     // store destReg and memory address
     LOAD_Direct(int dest, int addr) : destReg(dest), address(addr) {} 
@@ -870,7 +871,7 @@ class LOAD_Direct : public Instruction {
     void execute(CPU& cpu) override {
       // get value from memory at 'address'
       signed char value = cpu.getMemory().load(address);
-      // store that value into register 'destReg'
+      // load that value into register 'destReg'
       cpu.setRegister(destReg, value);
     }
 };
@@ -890,7 +891,7 @@ class LOAD_Indirect : public Instruction {
       int address = cpu.getRegister(srcReg);
       // get value from memory at that address
       signed char value = cpu.getMemory().load(address);
-      // store value into destination register
+      // load value into destination register
       cpu.setRegister(destReg, value);
     }
 };
